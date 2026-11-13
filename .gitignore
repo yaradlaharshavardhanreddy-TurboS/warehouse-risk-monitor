@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment secrets
+.env
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Generated data
+data/generated/
+data/exports/
+
+# Test and cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# Operating system
+.DS_Store
+Thumbs.db
