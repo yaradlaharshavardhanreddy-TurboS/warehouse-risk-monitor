@@ -214,7 +214,7 @@ def run_detection(dry_run=True, min_readings=2, gap_minutes=10):
         # Requirement IDs are unique in storage_requirements. Keeping this
         # lookup allows episode keys to use a hashable string, not a dict.
         requirements_by_id = {
-            requirement["requirement_id"]: requirement
+            (requirement["zone_id"], requirement["requirement_id"]): requirement
             for zone_requirements in by_zone.values()
             for requirement in zone_requirements
         }
@@ -271,7 +271,7 @@ def run_detection(dry_run=True, min_readings=2, gap_minutes=10):
                 alarm_type,
             ) = key
 
-            requirement = requirements_by_id[requirement_id]
+            requirement = requirements_by_id[(zone_id, requirement_id)]
 
             if state["count"] < min_readings:
                 totals["short_episodes"] += 1
