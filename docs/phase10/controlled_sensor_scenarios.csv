@@ -1,0 +1,5 @@
+scenario_id,issue_type,entity_type,sensor_id,zone_id,related_zone_id,event_start,event_end,previous_reading_at,next_reading_at,gap_seconds,occupancy_count,occupancy_limit,scenario_origin,evidence
+SYN-SENSOR-001,SENSOR_ASSIGNED_TO_MULTIPLE_ZONES,SENSOR,SEN-0001,ZN-001-01,ZN-001-02,2026-10-22 12:00:00,2026-10-22 12:30:00,,,,,,CONTROLLED_SYNTHETIC,Existing assignment to ZN-001-01 overlaps a synthetic assignment to ZN-001-02 from 2026-10-22 12:00:00 to 2026-10-22 12:30:00.
+SYN-SENSOR-002,SENSOR_READING_GAP,SENSOR,SEN-0002,ZN-001-01,,2026-10-22 12:00:00,2026-10-22 12:20:00,2026-10-22 12:00:00,2026-10-22 12:20:00,1200,,,CONTROLLED_SYNTHETIC,"Synthetic consecutive reading interval is 1200 seconds, exceeding the 900-second threshold."
+SYN-SENSOR-003,SENSOR_OUTAGE,SENSOR,SEN-0003,ZN-001-01,,2026-10-22 12:00:00,2026-10-22 12:30:00,,,1800,,,CONTROLLED_SYNTHETIC,Synthetic sensor outage lasting 1800 seconds. No outage row was inserted into the source database.
+SYN-SENSOR-004,OCCUPANCY_THRESHOLD_BREACH,SENSOR,SEN-0004,ZN-001-01,,2026-10-22 12:00:00,,,,,65,50,CONTROLLED_SYNTHETIC,Synthetic occupancy count of 65 exceeds the fixture-specific configured limit of 50.

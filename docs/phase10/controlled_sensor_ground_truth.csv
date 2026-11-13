@@ -1,0 +1,5 @@
+ground_truth_id,issue_type,entity_type,entity_id,detected_at,zone_id,related_zone_id,scenario_id,scenario_origin,label_status,evidence
+GT_98cf9612ee4e10b1,SENSOR_ASSIGNED_TO_MULTIPLE_ZONES,SENSOR,SEN-0001,2026-10-22 12:00:00,ZN-001-01,ZN-001-02,SYN-SENSOR-001,CONTROLLED_SYNTHETIC,CONFIRMED_SYNTHETIC,Existing assignment to ZN-001-01 overlaps a synthetic assignment to ZN-001-02 from 2026-10-22 12:00:00 to 2026-10-22 12:30:00.
+GT_0b8fdfd67d188c7b,SENSOR_READING_GAP,SENSOR,SEN-0002,2026-10-22 12:00:00,ZN-001-01,,SYN-SENSOR-002,CONTROLLED_SYNTHETIC,CONFIRMED_SYNTHETIC,"Synthetic consecutive reading interval is 1200 seconds, exceeding the 900-second threshold."
+GT_21b78afa4ce133b0,SENSOR_OUTAGE,SENSOR,SEN-0003,2026-10-22 12:00:00,ZN-001-01,,SYN-SENSOR-003,CONTROLLED_SYNTHETIC,CONFIRMED_SYNTHETIC,Synthetic sensor outage lasting 1800 seconds. No outage row was inserted into the source database.
+GT_3a03054c6b2e23ca,OCCUPANCY_THRESHOLD_BREACH,SENSOR,SEN-0004,2026-10-22 12:00:00,ZN-001-01,,SYN-SENSOR-004,CONTROLLED_SYNTHETIC,CONFIRMED_SYNTHETIC,Synthetic occupancy count of 65 exceeds the fixture-specific configured limit of 50.

@@ -1,0 +1,38 @@
+{
+    "phase": "10.4",
+    "project": "Warehouse Risk Monitoring System",
+    "scenario_count": 4,
+    "scenario_origin": "CONTROLLED_SYNTHETIC",
+    "source_database": "data\\warehouse_monitor.db",
+    "source_database_modified": false,
+    "scenarios": [
+        {
+            "scenario_id": "SYN-SENSOR-001",
+            "issue_type": "SENSOR_ASSIGNED_TO_MULTIPLE_ZONES",
+            "sensor_id": "SEN-0001",
+            "zone_id": "ZN-001-01"
+        },
+        {
+            "scenario_id": "SYN-SENSOR-002",
+            "issue_type": "SENSOR_READING_GAP",
+            "sensor_id": "SEN-0002",
+            "zone_id": "ZN-001-01"
+        },
+        {
+            "scenario_id": "SYN-SENSOR-003",
+            "issue_type": "SENSOR_OUTAGE",
+            "sensor_id": "SEN-0003",
+            "zone_id": "ZN-001-01"
+        },
+        {
+            "scenario_id": "SYN-SENSOR-004",
+            "issue_type": "OCCUPANCY_THRESHOLD_BREACH",
+            "sensor_id": "SEN-0004",
+            "zone_id": "ZN-001-01"
+        }
+    ],
+    "files": [
+        "docs\\phase10\\controlled_sensor_scenarios.csv",
+        "docs\\phase10\\controlled_sensor_ground_truth.csv"
+    ]
+}

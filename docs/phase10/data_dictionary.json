@@ -1,0 +1,1492 @@
+{
+  "project": "Warehouse Risk Monitoring System",
+  "database": "warehouse_monitor.db",
+  "generated_at_utc": "2026-11-13T15:28:25.798197+00:00",
+  "tables": [
+    {
+      "table_name": "alarm_lots",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "alarm_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": {
+            "referenced_table": "alarms",
+            "referenced_column": "alarm_id"
+          }
+        },
+        {
+          "name": "lot_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 2,
+          "foreign_key": {
+            "referenced_table": "inventory_lots",
+            "referenced_column": "lot_id"
+          }
+        },
+        {
+          "name": "impact_type",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "impact_start",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 3,
+          "foreign_key": null
+        },
+        {
+          "name": "impact_end",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "impact_details",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "lot_id",
+          "referenced_table": "inventory_lots",
+          "referenced_column": "lot_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        },
+        {
+          "column": "alarm_id",
+          "referenced_table": "alarms",
+          "referenced_column": "alarm_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_alarm_lots_lot",
+          "unique": false,
+          "columns": [
+            "lot_id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_alarm_lots_1",
+          "unique": true,
+          "columns": [
+            "alarm_id",
+            "lot_id",
+            "impact_start"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE alarm_lots (\n    alarm_id TEXT NOT NULL,\n    lot_id TEXT NOT NULL,\n    impact_type TEXT NOT NULL\n        CHECK (impact_type IN (\n            'TEMPERATURE',\n            'HUMIDITY',\n            'DWELL_TIME',\n            'DOOR_EXPOSURE',\n            'STORAGE_INCOMPATIBILITY',\n            'OTHER'\n        )),\n    impact_start TEXT NOT NULL,\n    impact_end TEXT,\n    impact_details TEXT,\n\n    PRIMARY KEY (alarm_id, lot_id, impact_start),\n\n    FOREIGN KEY (alarm_id)\n        REFERENCES alarms(alarm_id),\n\n    FOREIGN KEY (lot_id)\n        REFERENCES inventory_lots(lot_id),\n\n    CHECK (\n        impact_end IS NULL OR impact_end >= impact_start\n    )\n)"
+    },
+    {
+      "table_name": "alarms",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "alarm_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "warehouse_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "warehouses",
+            "referenced_column": "warehouse_id"
+          }
+        },
+        {
+          "name": "zone_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "zones",
+            "referenced_column": "zone_id"
+          }
+        },
+        {
+          "name": "sensor_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "sensors",
+            "referenced_column": "sensor_id"
+          }
+        },
+        {
+          "name": "alarm_type",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "severity",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "detected_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "description",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "lifecycle_state",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": "'OPEN'",
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "resolved_at",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "sensor_id",
+          "referenced_table": "sensors",
+          "referenced_column": "sensor_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        },
+        {
+          "column": "zone_id",
+          "referenced_table": "zones",
+          "referenced_column": "zone_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        },
+        {
+          "column": "warehouse_id",
+          "referenced_table": "warehouses",
+          "referenced_column": "warehouse_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_alarms_status",
+          "unique": false,
+          "columns": [
+            "lifecycle_state",
+            "severity"
+          ]
+        },
+        {
+          "name": "idx_alarms_zone_time",
+          "unique": false,
+          "columns": [
+            "zone_id",
+            "detected_at"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_alarms_1",
+          "unique": true,
+          "columns": [
+            "alarm_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE alarms (\n    alarm_id TEXT PRIMARY KEY,\n    warehouse_id TEXT NOT NULL,\n    zone_id TEXT NOT NULL,\n    sensor_id TEXT,\n    alarm_type TEXT NOT NULL\n        CHECK (alarm_type IN (\n            'HIGH_TEMPERATURE',\n            'LOW_TEMPERATURE',\n            'HIGH_HUMIDITY',\n            'LOW_HUMIDITY',\n            'HIGH_OCCUPANCY',\n            'DOOR_OPEN',\n            'SENSOR_OUTAGE',\n            'SENSOR_DRIFT',\n            'STORAGE_INCOMPATIBILITY'\n        )),\n    severity TEXT NOT NULL\n        CHECK (severity IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),\n    detected_at TEXT NOT NULL,\n    description TEXT NOT NULL,\n    lifecycle_state TEXT NOT NULL DEFAULT 'OPEN'\n        CHECK (lifecycle_state IN (\n            'OPEN',\n            'ACKNOWLEDGED',\n            'INVESTIGATING',\n            'RESOLVED',\n            'CLOSED'\n        )),\n    resolved_at TEXT,\n\n    FOREIGN KEY (warehouse_id)\n        REFERENCES warehouses(warehouse_id),\n\n    FOREIGN KEY (zone_id)\n        REFERENCES zones(zone_id),\n\n    FOREIGN KEY (sensor_id)\n        REFERENCES sensors(sensor_id),\n\n    CHECK (\n        resolved_at IS NULL OR resolved_at >= detected_at\n    )\n)"
+    },
+    {
+      "table_name": "door_events",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "door_event_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "zone_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "zones",
+            "referenced_column": "zone_id"
+          }
+        },
+        {
+          "name": "door_identifier",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "event_type",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "event_timestamp",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "duration_seconds",
+          "data_type": "INTEGER",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "recorded_by",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": "'SYSTEM'",
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "zone_id",
+          "referenced_table": "zones",
+          "referenced_column": "zone_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_door_events_zone_time",
+          "unique": false,
+          "columns": [
+            "zone_id",
+            "event_timestamp"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_door_events_1",
+          "unique": true,
+          "columns": [
+            "door_event_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE door_events (\n    door_event_id TEXT PRIMARY KEY,\n    zone_id TEXT NOT NULL,\n    door_identifier TEXT NOT NULL,\n    event_type TEXT NOT NULL\n        CHECK (event_type IN (\n            'OPENED',\n            'CLOSED',\n            'HELD_OPEN',\n            'FORCED_OPEN'\n        )),\n    event_timestamp TEXT NOT NULL,\n    duration_seconds INTEGER,\n    recorded_by TEXT NOT NULL DEFAULT 'SYSTEM',\n\n    FOREIGN KEY (zone_id)\n        REFERENCES zones(zone_id),\n\n    CHECK (\n        duration_seconds IS NULL OR duration_seconds >= 0\n    )\n)"
+    },
+    {
+      "table_name": "inspections",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "inspection_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "alarm_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "alarms",
+            "referenced_column": "alarm_id"
+          }
+        },
+        {
+          "name": "inspector_name",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "inspection_type",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "inspection_status",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": "'SCHEDULED'",
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "findings",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "scheduled_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "completed_at",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "alarm_id",
+          "referenced_table": "alarms",
+          "referenced_column": "alarm_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_inspections_alarm",
+          "unique": false,
+          "columns": [
+            "alarm_id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_inspections_1",
+          "unique": true,
+          "columns": [
+            "inspection_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE inspections (\n    inspection_id TEXT PRIMARY KEY,\n    alarm_id TEXT NOT NULL,\n    inspector_name TEXT NOT NULL,\n    inspection_type TEXT NOT NULL\n        CHECK (inspection_type IN (\n            'QUALITY',\n            'MAINTENANCE',\n            'INVENTORY',\n            'SAFETY'\n        )),\n    inspection_status TEXT NOT NULL DEFAULT 'SCHEDULED'\n        CHECK (inspection_status IN (\n            'SCHEDULED',\n            'IN_PROGRESS',\n            'COMPLETED',\n            'CANCELLED'\n        )),\n    findings TEXT,\n    scheduled_at TEXT NOT NULL,\n    completed_at TEXT,\n    \n    FOREIGN KEY (alarm_id)\n        REFERENCES alarms(alarm_id),\n\n    CHECK (\n        completed_at IS NULL OR completed_at >= scheduled_at\n    )\n)"
+    },
+    {
+      "table_name": "inventory_lots",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "lot_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "product_type",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "product_name",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "quantity",
+          "data_type": "INTEGER",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "unit_of_measure",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "requirement_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "storage_requirements",
+            "referenced_column": "requirement_id"
+          }
+        },
+        {
+          "name": "received_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "expiry_date",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "lifecycle_state",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": "'RECEIVED'",
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "requirement_id",
+          "referenced_table": "storage_requirements",
+          "referenced_column": "requirement_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_inventory_lots_1",
+          "unique": true,
+          "columns": [
+            "lot_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE inventory_lots (\n    lot_id TEXT PRIMARY KEY,\n    product_type TEXT NOT NULL,\n    product_name TEXT NOT NULL,\n    quantity INTEGER NOT NULL CHECK (quantity > 0),\n    unit_of_measure TEXT NOT NULL,\n    requirement_id TEXT NOT NULL,\n    received_at TEXT NOT NULL,\n    expiry_date TEXT,\n    lifecycle_state TEXT NOT NULL DEFAULT 'RECEIVED'\n        CHECK (lifecycle_state IN (\n            'RECEIVED',\n            'STORED',\n            'UNDER_INSPECTION',\n            'QUARANTINED',\n            'RELEASED',\n            'DISPATCHED',\n            'EXPIRED'\n        )),\n    created_at TEXT NOT NULL,\n\n    FOREIGN KEY (requirement_id)\n        REFERENCES storage_requirements(requirement_id),\n\n    CHECK (\n        expiry_date IS NULL OR expiry_date >= received_at\n    )\n)"
+    },
+    {
+      "table_name": "lot_zone_assignments",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "assignment_id",
+          "data_type": "INTEGER",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "lot_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "inventory_lots",
+            "referenced_column": "lot_id"
+          }
+        },
+        {
+          "name": "zone_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "zones",
+            "referenced_column": "zone_id"
+          }
+        },
+        {
+          "name": "assigned_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "released_at",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "assignment_reason",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "zone_id",
+          "referenced_table": "zones",
+          "referenced_column": "zone_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        },
+        {
+          "column": "lot_id",
+          "referenced_table": "inventory_lots",
+          "referenced_column": "lot_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_lot_assignments_lot",
+          "unique": false,
+          "columns": [
+            "lot_id",
+            "assigned_at"
+          ]
+        },
+        {
+          "name": "idx_lot_assignments_zone_time",
+          "unique": false,
+          "columns": [
+            "zone_id",
+            "assigned_at",
+            "released_at"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE lot_zone_assignments (\n    assignment_id INTEGER PRIMARY KEY AUTOINCREMENT,\n    lot_id TEXT NOT NULL,\n    zone_id TEXT NOT NULL,\n    assigned_at TEXT NOT NULL,\n    released_at TEXT,\n    assignment_reason TEXT,\n    created_at TEXT NOT NULL,\n\n    FOREIGN KEY (lot_id)\n        REFERENCES inventory_lots(lot_id),\n\n    FOREIGN KEY (zone_id)\n        REFERENCES zones(zone_id),\n\n    CHECK (\n        released_at IS NULL OR released_at > assigned_at\n    )\n)"
+    },
+    {
+      "table_name": "remediations",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "remediation_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "inspection_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "inspections",
+            "referenced_column": "inspection_id"
+          }
+        },
+        {
+          "name": "lot_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "inventory_lots",
+            "referenced_column": "lot_id"
+          }
+        },
+        {
+          "name": "remediation_type",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "action_description",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "remediation_status",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": "'PLANNED'",
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "assigned_to",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "started_at",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "completed_at",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "inventory_impact",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "lot_id",
+          "referenced_table": "inventory_lots",
+          "referenced_column": "lot_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        },
+        {
+          "column": "inspection_id",
+          "referenced_table": "inspections",
+          "referenced_column": "inspection_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_remediations_inspection",
+          "unique": false,
+          "columns": [
+            "inspection_id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_remediations_1",
+          "unique": true,
+          "columns": [
+            "remediation_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE remediations (\n    remediation_id TEXT PRIMARY KEY,\n    inspection_id TEXT NOT NULL,\n    lot_id TEXT,\n    remediation_type TEXT NOT NULL\n        CHECK (remediation_type IN (\n            'ADJUST_TEMPERATURE',\n            'ADJUST_HUMIDITY',\n            'REPAIR_SENSOR',\n            'CLOSE_DOOR',\n            'RELOCATE_INVENTORY',\n            'QUARANTINE_INVENTORY',\n            'RECALIBRATE_SENSOR',\n            'OTHER'\n        )),\n    action_description TEXT NOT NULL,\n    remediation_status TEXT NOT NULL DEFAULT 'PLANNED'\n        CHECK (remediation_status IN (\n            'PLANNED',\n            'IN_PROGRESS',\n            'COMPLETED',\n            'FAILED',\n            'CANCELLED'\n        )),\n    assigned_to TEXT NOT NULL,\n    started_at TEXT,\n    completed_at TEXT,\n    inventory_impact TEXT,\n\n    FOREIGN KEY (inspection_id)\n        REFERENCES inspections(inspection_id),\n\n    FOREIGN KEY (lot_id)\n        REFERENCES inventory_lots(lot_id),\n\n    CHECK (\n        completed_at IS NULL OR started_at IS NOT NULL\n    ),\n    CHECK (\n        completed_at IS NULL OR completed_at >= started_at\n    )\n)"
+    },
+    {
+      "table_name": "schema_metadata",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "version",
+          "data_type": "INTEGER",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "description",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "applied_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [],
+      "table_constraints_sql": "CREATE TABLE schema_metadata (\n    version INTEGER PRIMARY KEY,\n    description TEXT NOT NULL,\n    applied_at TEXT NOT NULL\n)"
+    },
+    {
+      "table_name": "sensor_outages",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "outage_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "sensor_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "sensors",
+            "referenced_column": "sensor_id"
+          }
+        },
+        {
+          "name": "outage_start",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "outage_end",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "detected_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "outage_reason",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "lifecycle_state",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": "'OPEN'",
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "sensor_id",
+          "referenced_table": "sensors",
+          "referenced_column": "sensor_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_sensor_outages_sensor_time",
+          "unique": false,
+          "columns": [
+            "sensor_id",
+            "outage_start"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_sensor_outages_1",
+          "unique": true,
+          "columns": [
+            "outage_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE sensor_outages (\n    outage_id TEXT PRIMARY KEY,\n    sensor_id TEXT NOT NULL,\n    outage_start TEXT NOT NULL,\n    outage_end TEXT,\n    detected_at TEXT NOT NULL,\n    outage_reason TEXT NOT NULL\n        CHECK (outage_reason IN (\n            'POWER_FAILURE',\n            'NETWORK_FAILURE',\n            'HARDWARE_FAILURE',\n            'UNKNOWN'\n        )),\n    lifecycle_state TEXT NOT NULL DEFAULT 'OPEN'\n        CHECK (lifecycle_state IN ('OPEN', 'RESOLVED')),\n    \n    FOREIGN KEY (sensor_id)\n        REFERENCES sensors(sensor_id),\n\n    CHECK (\n        outage_end IS NULL OR outage_end > outage_start\n    )\n)"
+    },
+    {
+      "table_name": "sensor_readings",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "reading_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "sensor_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "sensors",
+            "referenced_column": "sensor_id"
+          }
+        },
+        {
+          "name": "recorded_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "temperature_c",
+          "data_type": "REAL",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "humidity_pct",
+          "data_type": "REAL",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "occupancy_count",
+          "data_type": "INTEGER",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "battery_pct",
+          "data_type": "REAL",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "signal_strength",
+          "data_type": "REAL",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "received_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "sensor_id",
+          "referenced_table": "sensors",
+          "referenced_column": "sensor_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_readings_sensor_time",
+          "unique": false,
+          "columns": [
+            "sensor_id",
+            "recorded_at"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_sensor_readings_2",
+          "unique": true,
+          "columns": [
+            "sensor_id",
+            "recorded_at"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_sensor_readings_1",
+          "unique": true,
+          "columns": [
+            "reading_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE sensor_readings (\n    reading_id TEXT PRIMARY KEY,\n    sensor_id TEXT NOT NULL,\n    recorded_at TEXT NOT NULL,\n    temperature_c REAL,\n    humidity_pct REAL,\n    occupancy_count INTEGER,\n    battery_pct REAL,\n    signal_strength REAL,\n    received_at TEXT NOT NULL,\n\n    FOREIGN KEY (sensor_id)\n        REFERENCES sensors(sensor_id),\n\n    UNIQUE (sensor_id, recorded_at),\n\n    CHECK (\n        temperature_c IS NULL OR\n        temperature_c BETWEEN -100 AND 150\n    ),\n\n    CHECK (\n        humidity_pct IS NULL OR\n        humidity_pct BETWEEN 0 AND 100\n    ),\n\n    CHECK (\n        occupancy_count IS NULL OR occupancy_count >= 0\n    ),\n\n    CHECK (\n        battery_pct IS NULL OR battery_pct BETWEEN 0 AND 100\n    )\n)"
+    },
+    {
+      "table_name": "sensor_zone_assignments",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "assignment_id",
+          "data_type": "INTEGER",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "sensor_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "sensors",
+            "referenced_column": "sensor_id"
+          }
+        },
+        {
+          "name": "zone_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "zones",
+            "referenced_column": "zone_id"
+          }
+        },
+        {
+          "name": "effective_from",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "effective_to",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "assignment_reason",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "zone_id",
+          "referenced_table": "zones",
+          "referenced_column": "zone_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        },
+        {
+          "column": "sensor_id",
+          "referenced_table": "sensors",
+          "referenced_column": "sensor_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_sensor_assignments_zone",
+          "unique": false,
+          "columns": [
+            "zone_id",
+            "effective_from"
+          ]
+        },
+        {
+          "name": "idx_sensor_assignments_sensor",
+          "unique": false,
+          "columns": [
+            "sensor_id",
+            "effective_from"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE sensor_zone_assignments (\n    assignment_id INTEGER PRIMARY KEY AUTOINCREMENT,\n    sensor_id TEXT NOT NULL,\n    zone_id TEXT NOT NULL,\n    effective_from TEXT NOT NULL,\n    effective_to TEXT,\n    assignment_reason TEXT,\n    created_at TEXT NOT NULL,\n\n    FOREIGN KEY (sensor_id)\n        REFERENCES sensors(sensor_id),\n\n    FOREIGN KEY (zone_id)\n        REFERENCES zones(zone_id),\n\n    CHECK (\n        effective_to IS NULL OR effective_to > effective_from\n    )\n)"
+    },
+    {
+      "table_name": "sensors",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "sensor_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "sensor_name",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "sensor_type",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "manufacturer",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "installation_date",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "calibration_due_date",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "lifecycle_state",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": "'ACTIVE'",
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_sensors_1",
+          "unique": true,
+          "columns": [
+            "sensor_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE sensors (\n    sensor_id TEXT PRIMARY KEY,\n    sensor_name TEXT NOT NULL,\n    sensor_type TEXT NOT NULL\n        CHECK (sensor_type IN ('TEMP', 'HUMIDITY', 'OCCUPANCY', 'MULTI')),\n    manufacturer TEXT,\n    installation_date TEXT NOT NULL,\n    calibration_due_date TEXT,\n    lifecycle_state TEXT NOT NULL DEFAULT 'ACTIVE'\n        CHECK (lifecycle_state IN ('ACTIVE', 'INACTIVE', 'FAULTY', 'RETIRED')),\n    created_at TEXT NOT NULL\n)"
+    },
+    {
+      "table_name": "storage_requirements",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "requirement_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "product_type",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "min_temperature_c",
+          "data_type": "REAL",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "max_temperature_c",
+          "data_type": "REAL",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "min_humidity_pct",
+          "data_type": "REAL",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "max_humidity_pct",
+          "data_type": "REAL",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "max_dwell_hours",
+          "data_type": "REAL",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "effective_from",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "effective_to",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "requirement_version",
+          "data_type": "INTEGER",
+          "not_null": true,
+          "default_value": "1",
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_storage_requirements_2",
+          "unique": true,
+          "columns": [
+            "product_type",
+            "requirement_version"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_storage_requirements_1",
+          "unique": true,
+          "columns": [
+            "requirement_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE storage_requirements (\n    requirement_id TEXT PRIMARY KEY,\n    product_type TEXT NOT NULL,\n    min_temperature_c REAL NOT NULL,\n    max_temperature_c REAL NOT NULL,\n    min_humidity_pct REAL NOT NULL,\n    max_humidity_pct REAL NOT NULL,\n    max_dwell_hours REAL NOT NULL,\n    effective_from TEXT NOT NULL,\n    effective_to TEXT,\n    requirement_version INTEGER NOT NULL DEFAULT 1,\n    created_at TEXT NOT NULL,\n\n    CHECK (min_temperature_c <= max_temperature_c),\n    CHECK (min_humidity_pct <= max_humidity_pct),\n    CHECK (min_humidity_pct >= 0 AND max_humidity_pct <= 100),\n    CHECK (max_dwell_hours > 0),\n    CHECK (\n        effective_to IS NULL OR effective_to > effective_from\n    ),\n    UNIQUE (product_type, requirement_version)\n)"
+    },
+    {
+      "table_name": "warehouses",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "warehouse_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "warehouse_name",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "location",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "capacity_sq_m",
+          "data_type": "REAL",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "warehouse_type",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "lifecycle_state",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": "'ACTIVE'",
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "updated_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_warehouses_1",
+          "unique": true,
+          "columns": [
+            "warehouse_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE warehouses (\n    warehouse_id TEXT PRIMARY KEY,\n    warehouse_name TEXT NOT NULL,\n    location TEXT NOT NULL,\n    capacity_sq_m REAL NOT NULL CHECK (capacity_sq_m > 0),\n    warehouse_type TEXT NOT NULL\n        CHECK (warehouse_type IN ('COLD', 'HOT', 'AMBIENT', 'MIXED')),\n    lifecycle_state TEXT NOT NULL DEFAULT 'ACTIVE'\n        CHECK (lifecycle_state IN ('ACTIVE', 'INACTIVE', 'MAINTENANCE')),\n    created_at TEXT NOT NULL,\n    updated_at TEXT NOT NULL\n)"
+    },
+    {
+      "table_name": "zones",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "zone_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null
+        },
+        {
+          "name": "warehouse_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "warehouses",
+            "referenced_column": "warehouse_id"
+          }
+        },
+        {
+          "name": "zone_name",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "zone_type",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "max_capacity",
+          "data_type": "INTEGER",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "lifecycle_state",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": "'ACTIVE'",
+          "primary_key_position": 0,
+          "foreign_key": null
+        },
+        {
+          "name": "created_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "warehouse_id",
+          "referenced_table": "warehouses",
+          "referenced_column": "warehouse_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_zones_warehouse",
+          "unique": false,
+          "columns": [
+            "warehouse_id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_zones_2",
+          "unique": true,
+          "columns": [
+            "warehouse_id",
+            "zone_name"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_zones_1",
+          "unique": true,
+          "columns": [
+            "zone_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE zones (\n    zone_id TEXT PRIMARY KEY,\n    warehouse_id TEXT NOT NULL,\n    zone_name TEXT NOT NULL,\n    zone_type TEXT NOT NULL\n        CHECK (zone_type IN ('COLD', 'HOT', 'AMBIENT', 'FREEZER', 'LOADING')),\n    max_capacity INTEGER NOT NULL CHECK (max_capacity > 0),\n    lifecycle_state TEXT NOT NULL DEFAULT 'ACTIVE'\n        CHECK (lifecycle_state IN ('ACTIVE', 'INACTIVE', 'MAINTENANCE')),\n    created_at TEXT NOT NULL,\n\n    FOREIGN KEY (warehouse_id)\n        REFERENCES warehouses(warehouse_id),\n\n    UNIQUE (warehouse_id, zone_name)\n)"
+    }
+  ]
+}

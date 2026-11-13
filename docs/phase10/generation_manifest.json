@@ -1,0 +1,29 @@
+{
+    "generated_at_utc": "2026-11-13T15:55:15.884137+00:00",
+    "database": "data/warehouse_monitor.db",
+    "database_sha256": "4898400d7b5174b3a0f3ad14df995adc5ed87be3bfa19961551d1e4d2fabe08a",
+    "database_size_bytes": 397488128,
+    "master_seed": 20261022,
+    "table_counts": {
+        "alarm_lots": 628552,
+        "alarms": 6472,
+        "door_events": 16398,
+        "inspections": 6472,
+        "inventory_lots": 10000,
+        "lot_zone_assignments": 10000,
+        "remediations": 10,
+        "schema_metadata": 1,
+        "sensor_outages": 0,
+        "sensor_readings": 1000000,
+        "sensor_zone_assignments": 500,
+        "sensors": 500,
+        "storage_requirements": 5,
+        "warehouses": 10,
+        "zones": 100
+    },
+    "total_tables": 15,
+    "database_integrity": "ok",
+    "foreign_key_violations": 0,
+    "source_database_modified": false,
+    "note": "This is a baseline manifest. It does not claim that the existing generators have been unified or that two full regenerations have been compared."
+}

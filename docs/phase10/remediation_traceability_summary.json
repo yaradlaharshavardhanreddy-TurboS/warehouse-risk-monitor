@@ -1,0 +1,27 @@
+{
+    "generated_at_utc": "2026-11-13T15:50:29.287602+00:00",
+    "source_database": "data\\warehouse_monitor.db",
+    "source_database_modified": false,
+    "total_alarms": 6472,
+    "total_alarm_lot_links": 628552,
+    "total_inventory_lots": 10000,
+    "total_inspections": 6472,
+    "total_remediations": 10,
+    "traceability_rows": 628693,
+    "alarms_with_inventory_links": 6331,
+    "alarms_without_inventory_links": 141,
+    "inventory_link_status": {
+        "LINKED_TO_INVENTORY": 628552,
+        "NO_INVENTORY_LINK": 141
+    },
+    "remediation_status": {
+        "NO_REMEDIATION_RECORDED": 628611,
+        "REMEDIATION_RECORDED": 82
+    },
+    "limitations": [
+        "Inventory links reflect existing alarm_lots records.",
+        "This report does not infer missing alarm-to-lot links.",
+        "Remediation links are matched using alarm_id and inspection_id.",
+        "No source database records are inserted or updated."
+    ]
+}

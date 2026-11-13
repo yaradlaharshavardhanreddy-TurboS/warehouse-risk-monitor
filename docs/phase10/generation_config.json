@@ -1,0 +1,35 @@
+{
+    "project": "Warehouse Risk Monitoring System",
+    "master_seed": 20261022,
+    "profile": "full",
+    "scale": {
+        "warehouses": 10,
+        "zones": 100,
+        "sensors": 500,
+        "sensor_readings": 1000000,
+        "inventory_lots": 10000
+    },
+    "generator_seeds": {
+        "warehouses": 20261022,
+        "zones": 20261022,
+        "sensors": 20261022,
+        "sensor_readings": 20261022,
+        "inventory_lots": 20261022,
+        "door_events": 20261023,
+        "alarms": 20261022,
+        "inspections": 20261022
+    },
+    "id_formats": {
+        "warehouse": "WH-{number:03d}",
+        "zone": "ZN-{warehouse_number:03d}-{zone_number:02d}",
+        "sensor": "SEN-{number:04d}",
+        "inventory_lot": "LOT-2026-{number:06d}",
+        "sensor_reading": "RDG-{sensor_id}-{normalized_timestamp}"
+    },
+    "reproducibility": {
+        "fixed_seed": true,
+        "stable_id_formats": true,
+        "same_seed_same_random_sequence": true,
+        "generator_integration_required": true
+    }
+}

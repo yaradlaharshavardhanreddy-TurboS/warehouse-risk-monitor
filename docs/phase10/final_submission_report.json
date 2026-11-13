@@ -1,0 +1,120 @@
+{
+    "generated_at_utc": "2026-11-13T15:55:19.703915+00:00",
+    "project": "Warehouse Risk Monitoring System",
+    "phase": "10",
+    "database": {
+        "integrity": "ok",
+        "foreign_key_violations": 0,
+        "table_count": 15,
+        "table_counts": {
+            "alarm_lots": 628552,
+            "alarms": 6472,
+            "door_events": 16398,
+            "inspections": 6472,
+            "inventory_lots": 10000,
+            "lot_zone_assignments": 10000,
+            "remediations": 10,
+            "schema_metadata": 1,
+            "sensor_outages": 0,
+            "sensor_readings": 1000000,
+            "sensor_zone_assignments": 500,
+            "sensors": 500,
+            "storage_requirements": 5,
+            "warehouses": 10,
+            "zones": 100
+        }
+    },
+    "ground_truth": {
+        "exists": true,
+        "record_count": 0,
+        "issue_types": {}
+    },
+    "phase10_files": [
+        {
+            "file": "docs/phase10/data_dictionary.json",
+            "exists": true,
+            "size_bytes": 50576,
+            "sha256": "d51003267285c0c7f3d5ed215786c3e8578abc78cc9aba10d5420779c6cb0825"
+        },
+        {
+            "file": "docs/phase10/data_dictionary.csv",
+            "exists": true,
+            "size_bytes": 5599,
+            "sha256": "4f6299d28e3be2cd0243ae18fa712262645d92328e5e11b8d0132cf1b574893a"
+        },
+        {
+            "file": "docs/phase10/data_dictionary.md",
+            "exists": true,
+            "size_bytes": 13245,
+            "sha256": "8b4acdb6e92724b6541ffd2d72fdbe1179377213ef6b4b87f110f86ef395cbbf"
+        },
+        {
+            "file": "docs/phase10/ground_truth.csv",
+            "exists": true,
+            "size_bytes": 105,
+            "sha256": "6beef35a13b3e83c7e392d704c1270a045b50959f8f274b8b2ecccfa5b084e2a"
+        },
+        {
+            "file": "docs/phase10/anomaly_catalog.md",
+            "exists": true,
+            "size_bytes": 1249,
+            "sha256": "35b07f42b025113f627e012a7066b8ecd3387e0585fdd269fff581533c1e9ecb"
+        },
+        {
+            "file": "docs/phase10/source_manifest.json",
+            "exists": true,
+            "size_bytes": 846,
+            "sha256": "391072ad94fdcef02588f41f185f0eb947a303638fc9798728ab9b5dae17871c"
+        },
+        {
+            "file": "docs/phase10/controlled_sensor_scenarios.csv",
+            "exists": true,
+            "size_bytes": 1172,
+            "sha256": "c0fe92c13b6cfbba82433354370ce15de6e134677dd08221a78ba07d233b73d5"
+        },
+        {
+            "file": "docs/phase10/controlled_sensor_ground_truth.csv",
+            "exists": true,
+            "size_bytes": 1140,
+            "sha256": "b267c1bdc2b67d84f35bfd63827d63a75083c72bda5fd947f48a512f2b797e91"
+        },
+        {
+            "file": "docs/phase10/controlled_sensor_manifest.json",
+            "exists": true,
+            "size_bytes": 1202,
+            "sha256": "ad8797247dc27ff656f3d90514e023ce1ba11a70ea92371daf4a78f9eb71ad46"
+        },
+        {
+            "file": "docs/phase10/remediation_traceability.csv",
+            "exists": true,
+            "size_bytes": 123209897,
+            "sha256": "c52baa455b394b512e1b4310d87389f31e08f96eb5c0708dc30b522bf92e82ab"
+        },
+        {
+            "file": "docs/phase10/remediation_traceability_summary.json",
+            "exists": true,
+            "size_bytes": 974,
+            "sha256": "49da8ac743f6e08baa8129ebc2c4611ea05cece0169fbadb02e906b758671105"
+        },
+        {
+            "file": "docs/phase10/generation_config.json",
+            "exists": true,
+            "size_bytes": 1062,
+            "sha256": "d12c5cb9bf251386a93a0803e77948e0d0d918c01646fc34fce65778e7dad05b"
+        },
+        {
+            "file": "docs/phase10/generation_manifest.json",
+            "exists": true,
+            "size_bytes": 1064,
+            "sha256": "d80bbf7f4d09dbceaef6c30143a54834f11a3a05980c54fa066a0d2209f161f4"
+        }
+    ],
+    "source_database_modified": false,
+    "submission_status": "PENDING_FINAL_VALIDATION",
+    "notes": [
+        "This report inventories available artifacts.",
+        "It does not claim that all final tests have passed.",
+        "Reproducibility must be demonstrated by comparing two runs.",
+        "The main README is not overwritten."
+    ]
+}
