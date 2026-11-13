@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}Warehouse Risk Monitor{% endblock %}</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<div class="app-layout">
+
+    <aside class="sidebar">
+
+        <div class="brand">
+            <div class="brand-icon">W</div>
+            <div>
+                <h2>Warehouse Risk</h2>
+                <span>Monitoring System</span>
+            </div>
+        </div>
+
+        <nav class="navigation">
+
+            <a href="/monitor" class="nav-link">
+                <span>▦</span> Dashboard
+            </a>
+
+            <a href="/alarms" class="nav-link">
+                <span>⚠</span> Alarms
+            </a>
+
+            <a href="/warehouses" class="nav-link">
+                <span>▤</span> Warehouses
+            </a>
+
+            <a href="/inventory" class="nav-link">
+                <span>▣</span> Inventory
+            </a>
+
+            <a href="/inspections" class="nav-link">
+                <span>✓</span> Inspections
+            </a>
+
+            <a href="/remediations" class="nav-link">
+                <span>⚙</span> Remediations
+            </a>
+
+            <a href="/analytics" class="nav-link">
+                <span>▥</span> Analytics
+            </a>
+
+        </nav>
+
+        <div class="sidebar-footer">
+            <span class="status-dot"></span>
+            System dashboard
+        </div>
+
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <h1>{% block page_heading %}Warehouse Dashboard{% endblock %}</h1>
+                <p>Warehouse risk monitoring and analytics</p>
+            </div>
+
+            <div class="topbar-right">
+                <span class="connection-indicator">
+                    <span class="status-dot"></span>
+                    API Connected
+                </span>
+            </div>
+        </header>
+
+        <section class="content-area">
+            {% block content %}{% endblock %}
+        </section>
+
+        <footer class="footer">
+            Warehouse Risk Monitoring System
+            <span>Powered by Flask and SQLite</span>
+        </footer>
+
+    </main>
+
+</div>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

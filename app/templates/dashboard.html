@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Warehouse Risk Monitor{% endblock %}
+{% block page_heading %}Overview Dashboard{% endblock %}
+
+{% block content %}
+
+<div class="welcome-section">
+    <div>
+        <h2>Warehouse Risk Overview</h2>
+        <p>Monitor alarms, inventory exposure and operational performance.</p>
+    </div>
+
+    <button class="refresh-button" onclick="loadDashboard()">
+        ↻ Refresh Data
+    </button>
+</div>
+
+<div id="dashboard-error" class="error-message hidden"></div>
+
+<div id="dashboard-loading" class="loading">
+    Loading dashboard analytics...
+</div>
+
+<div id="dashboard-content" class="hidden">
+
+    <div class="stats-grid">
+
+        <div class="stat-card">
+            <div class="stat-label">Total Warehouses</div>
+            <div class="stat-value" id="total-warehouses">--</div>
+            <div class="stat-description">Registered warehouses</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Total Alarms</div>
+            <div class="stat-value" id="total-alarms">--</div>
+            <div class="stat-description">Recorded environmental alarms</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Affected Inventory Lots</div>
+            <div class="stat-value" id="affected-lots">--</div>
+            <div class="stat-description">Unique affected lots</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Total Inventory Lots</div>
+            <div class="stat-value" id="total-inventory">--</div>
+            <div class="stat-description">Registered inventory lots</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Inspections</div>
+            <div class="stat-value" id="total-inspections">--</div>
+            <div class="stat-description">Total inspection records</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Remediations</div>
+            <div class="stat-value" id="total-remediations">--</div>
+            <div class="stat-description">Total remediation records</div>
+        </div>
+
+    </div>
+
+    <div class="charts-grid">
+
+        <div class="panel">
+            <div class="panel-header">
+                <h3>Daily Alarm Trends</h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="alarmTrendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <h3>Alarm Distribution</h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="alarmDistributionChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <h3>Inspection Status</h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="inspectionChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <h3>Remediation Status</h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="remediationChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h3>Dashboard Report Information</h3>
+        </div>
+        <div id="report-information" class="report-information"></div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="welcome-section">
+    <div>
+        <h2>{{ section_title }}</h2>
+        <p>{{ section_description }}</p>
+    </div>
+
+    <button class="refresh-button" id="refresh-page-data">
+        ↻ Refresh Data
+    </button>
+</div>
+
+<div id="page-error" class="error-message hidden"></div>
+
+<div id="page-loading" class="loading">
+    Loading analytics...
+</div>
+
+<div id="page-content" class="hidden">
+
+    <div id="page-summary" class="page-summary"></div>
+
+    <div id="page-sections" class="page-sections"></div>
+
+    <div id="page-empty" class="empty-state hidden">
+        No analytics data is currently available.
+    </div>
+
+
+</div>
+
+<div
+    id="page-config"
+    data-api-endpoint="{{ current_endpoint }}"
+    hidden>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/data_page.js') }}"></script>
+{% endblock %}
