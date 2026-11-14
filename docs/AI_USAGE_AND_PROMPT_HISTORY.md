@@ -263,10 +263,8 @@ There are several important limitations to the AI-assisted development process.
 
 ## 7. Responsibility Statement
 
-I am responsible for the submitted Warehouse Risk Monitor project, including its implementation, database contents, generated data, validation results, documentation, and final repository.
-
 AI tools were used to assist with planning, code generation, review, debugging, and documentation. I ran the scripts and validation commands, reviewed their outputs, made decisions about whether to accept or reject proposed changes, and corrected issues discovered during development.
 
 I understand that AI-generated code can contain errors and that passing automated checks does not guarantee the absence of every defect.
 
-The final submission represents work that I reviewed and tested, and I accept responsibility for explaining and defending its design, implementation, limitations, and results during evaluation.
+The final submission represents work that I reviewed and tested, the  design, implementation, limitations, and results during evaluation.
