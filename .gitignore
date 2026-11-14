@@ -35,3 +35,8 @@ Thumbs.db
 # Generated reports and repair logs
 reports/
 docs/phase10/remediation_traceability.csv
+backups/
+exports/
+*.db-wal
+*.db-shm
+scripts/finalize_submission.py
