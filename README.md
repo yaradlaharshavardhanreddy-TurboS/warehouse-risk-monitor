@@ -51,7 +51,7 @@ The hosted deployment provides a read-only viewer of the warehouse monitoring da
 |Database schema|[`app/database/schema.sql`](app/database/schema.sql)|SQLite schema, constraints, and indexes|
 |Database connection|[`app/database/database.py`](app/database/database.py)|Database access and loading|
 |Synthetic data generators|[`app/generator/`](app/generator/)|Warehouse, zone, sensor, reading, inventory, requirement, and door-event generation|
-|Clean operational database|`data/warehouse\_monitor.db`|Baseline database, supplied separately|
+|Clean operational database|`data/warehouse_monitor.db`|Baseline database, supplied separately|
 |Anomaly injection script|[`scripts/inject\_anomalies.py`](scripts/inject_anomalies.py)|Creates injected anomaly scenarios and ground truth|
 |CSV export script|[`scripts/export\_data.py`](scripts/export_data.py)|Exports database tables to CSV|
 |Ground truth|[`docs/phase10/ground\_truth.csv`](docs/phase10/ground_truth.csv)|Injected anomaly records and detector-derived evidence|
@@ -199,7 +199,7 @@ python -m pip install -r requirements.txt
 Place the supplied clean database at:
 
 ```text
-data/warehouse\_monitor.db
+data/warehouse_monitor.db
 ```
 
 The large database is supplied separately from the source-and-documentation ZIP.
@@ -448,7 +448,7 @@ For the detailed disclosure, see [`docs/AI\_USAGE\_AND\_PROMPT\_HISTORY.md`](doc
 
 ## Known Limitations
 
-* Separate clean and anomaly databases: `data/warehouse\_monitor.db` is the clean baseline. `data/warehouse\_monitor\_anomalies.db` is created separately by `scripts/inject\_anomalies.py` and is recreated when the injector runs with `--force`.
+* Separate clean and anomaly databases: `data/warehouse_monitor.db` is the clean baseline. `data/warehouse\_monitor\_anomalies.db` is created separately by `scripts/inject\_anomalies.py` and is recreated when the injector runs with `--force`.
 * Database packaging: the large clean database is supplied separately from the source-and-documentation ZIP.
 * Identifier format differences: zone IDs use forms such as `ZN-001-01` and sensor IDs use forms such as `SEN-0001`, rather than the specified `ZONE-WH-001-001` and `SNS-...` patterns.
 * Zone and lot distribution: 40 of 100 zones hold no inventory lots.
