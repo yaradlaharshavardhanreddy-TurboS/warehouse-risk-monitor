@@ -1,0 +1,53 @@
+{
+  "database": "data\\warehouse_monitor.db",
+  "tables": {
+    "alarm_lots": {
+      "row_count": 628552
+    },
+    "alarms": {
+      "row_count": 6472
+    },
+    "door_events": {
+      "row_count": 16398
+    },
+    "inspections": {
+      "row_count": 6472
+    },
+    "inventory_lots": {
+      "row_count": 10000
+    },
+    "lot_zone_assignments": {
+      "row_count": 10000
+    },
+    "remediations": {
+      "row_count": 10
+    },
+    "schema_metadata": {
+      "row_count": 1
+    },
+    "sensor_outages": {
+      "row_count": 0
+    },
+    "sensor_readings": {
+      "row_count": 1000000
+    },
+    "sensor_zone_assignments": {
+      "row_count": 500
+    },
+    "sensors": {
+      "row_count": 500
+    },
+    "storage_requirements": {
+      "row_count": 5
+    },
+    "warehouses": {
+      "row_count": 10
+    },
+    "zones": {
+      "row_count": 100
+    }
+  },
+  "total_tables": 15,
+  "sql_export": "warehouse_monitor_seed.sql",
+  "sql_export_sha256": "1345470a3e18d63143eb4c30a1db77bbe06797b1e707f7885c2a5f536984e37c"
+}

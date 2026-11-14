@@ -36,7 +36,7 @@ Thumbs.db
 reports/
 docs/phase10/remediation_traceability.csv
 backups/
-exports/
 *.db-wal
 *.db-shm
 scripts/finalize_submission.py
+exports/warehouse_monitor_seed.sql
