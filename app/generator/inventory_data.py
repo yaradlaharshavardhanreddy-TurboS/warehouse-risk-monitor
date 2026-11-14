@@ -26,7 +26,7 @@ def format_timestamp(value):
     return value.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def generate_inventory():
+def generate_inventory(lot_count=LOT_COUNT, expected_warehouses=10, expected_zones=100):
     rng = random.Random(SEED)
 
     connection = sqlite3.connect(DATABASE_PATH)
@@ -48,15 +48,11 @@ def generate_inventory():
             "SELECT COUNT(*) FROM storage_requirements"
         ).fetchone()[0]
 
-        if warehouse_count != 10:
-            raise RuntimeError(
-                f"Expected 10 warehouses, found {warehouse_count}."
-            )
+        if warehouse_count != expected_warehouses:
+            raise RuntimeError(f"Expected {expected_warehouses} warehouses, found {warehouse_count}.")
 
-        if zone_count != 100:
-            raise RuntimeError(
-                f"Expected 100 zones, found {zone_count}."
-            )
+        if zone_count != expected_zones:
+            raise RuntimeError(f"Expected {expected_zones} zones, found {zone_count}.")
 
         if requirement_count != 5:
             raise RuntimeError(
@@ -115,7 +111,7 @@ def generate_inventory():
         lot_records = []
         assignment_records = []
 
-        for number in range(1, LOT_COUNT + 1):
+        for number in range(1, lot_count + 1):
             lot_id = f"LOT-{number:06d}"
 
             product_type = rng.choice(product_types)

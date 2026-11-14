@@ -19,7 +19,7 @@ WAREHOUSES = [
 ]
 
 
-def generate_warehouses():
+def generate_warehouses(warehouse_count=10):
     connection = sqlite3.connect(DATABASE_PATH)
     connection.execute("PRAGMA foreign_keys = ON")
 
@@ -36,7 +36,10 @@ def generate_warehouses():
                 "Generator stopped to prevent duplicates."
             )
 
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if not 1 <= warehouse_count <= len(WAREHOUSES):
+            raise ValueError(f"warehouse_count must be between 1 and {len(WAREHOUSES)}")
+        selected_warehouses = WAREHOUSES[:warehouse_count]
+        now = "2026-01-01 00:00:00"
 
         cursor.executemany(
             """
@@ -54,14 +57,14 @@ def generate_warehouses():
             """,
             [
                 (*warehouse, now, now)
-                for warehouse in WAREHOUSES
+                for warehouse in selected_warehouses
             ],
         )
 
         connection.commit()
 
         print("Warehouse generation successful!")
-        print("Total warehouses:", len(WAREHOUSES))
+        print("Total warehouses:", len(selected_warehouses))
 
     except Exception:
         connection.rollback()

@@ -1,0 +1,189 @@
+{
+  "profile": "full",
+  "database": "C:\\Users\\akshi\\warehouse-risk-monitor\\data\\warehouse_monitor.db",
+  "checks": [
+    {
+      "check": "Database file exists",
+      "passed": true,
+      "detail": "C:\\Users\\akshi\\warehouse-risk-monitor\\data\\warehouse_monitor.db"
+    },
+    {
+      "check": "SQLite integrity",
+      "passed": true,
+      "detail": "ok"
+    },
+    {
+      "check": "Foreign-key integrity",
+      "passed": true,
+      "detail": "0 violations"
+    },
+    {
+      "check": "Required relational tables",
+      "passed": true,
+      "detail": "15 tables; missing []"
+    },
+    {
+      "check": "full profile count: warehouses",
+      "passed": true,
+      "detail": "expected 10; found 10"
+    },
+    {
+      "check": "full profile count: zones",
+      "passed": true,
+      "detail": "expected 100; found 100"
+    },
+    {
+      "check": "full profile count: sensors",
+      "passed": true,
+      "detail": "expected 500; found 500"
+    },
+    {
+      "check": "full profile count: sensor_readings",
+      "passed": true,
+      "detail": "expected 1,000,000; found 1000000"
+    },
+    {
+      "check": "full profile count: inventory_lots",
+      "passed": true,
+      "detail": "expected 10,000; found 10000"
+    },
+    {
+      "check": "full profile count: sensor_zone_assignments",
+      "passed": true,
+      "detail": "expected 500; found 500"
+    },
+    {
+      "check": "full profile count: lot_zone_assignments",
+      "passed": true,
+      "detail": "expected 10,000; found 10000"
+    },
+    {
+      "check": "One current zone assignment per active sensor",
+      "passed": true,
+      "detail": "active=500; assigned=500; duplicate groups=0"
+    },
+    {
+      "check": "Sensor assignment effective periods do not overlap",
+      "passed": true,
+      "detail": "0 overlapping pairs"
+    },
+    {
+      "check": "Active inventory assignments use compatible zone types",
+      "passed": true,
+      "detail": "0 incompatible assignments"
+    },
+    {
+      "check": "Alarm-to-lot bridge references are valid",
+      "passed": true,
+      "detail": "0 orphan links"
+    },
+    {
+      "check": "Alarm lifecycle timestamps match state",
+      "passed": true,
+      "detail": "0 inconsistent alarms"
+    },
+    {
+      "check": "Inspection completion timestamps match status",
+      "passed": true,
+      "detail": "0 inconsistent inspections"
+    },
+    {
+      "check": "Remediation lifecycle timestamps are coherent",
+      "passed": true,
+      "detail": "0 inconsistent remediations"
+    },
+    {
+      "check": "Risk detector output exists",
+      "passed": true,
+      "detail": "6,472 alarms"
+    },
+    {
+      "check": "Inspection workflow records exist",
+      "passed": true,
+      "detail": "6,472 inspections"
+    },
+    {
+      "check": "Remediation workflow records exist",
+      "passed": true,
+      "detail": "10 remediations"
+    },
+    {
+      "check": "README overview",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "README features",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "README installation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "README usage",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "README architecture",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "Submission artifact: docs/ARCHITECTURE_AND_DECISIONS.md",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "Submission artifact: docs/DATA_GENERATION_AND_VALIDATION.md",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "Submission artifact: docs/AI_USAGE_AND_PROMPT_HISTORY.md",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "Submission artifact: scripts/run_profiles.py",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "Submission artifact: scripts/validate_submission.py",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "Submission artifact: scripts/restore_database.py",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "Source-derived ground truth schema/evidence is valid",
+      "passed": true,
+      "detail": "0 source-derived candidates; empty is permitted when no qualifying source anomaly exists"
+    },
+    {
+      "check": "Controlled sensor ground truth contains evidence-backed synthetic labels",
+      "passed": true,
+      "detail": "4 fixture rows"
+    },
+    {
+      "check": "Controlled business edge cases are explicitly synthetic and evidenced",
+      "passed": true,
+      "detail": "2 fixture rows"
+    },
+    {
+      "check": "Starter and full two-run reproducibility report",
+      "passed": true,
+      "detail": "starter=PASS; full=PASS"
+    }
+  ],
+  "passed": 36,
+  "failed": 0,
+  "success": true
+}

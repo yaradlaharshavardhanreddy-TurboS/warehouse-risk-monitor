@@ -1,0 +1,3253 @@
+WAREHOUSE RISK MONITOR - CORRECTION SOURCE AUDIT
+
+
+================================================================================
+app/generator/door_event_data.py
+================================================================================
+"""Generate deterministic warehouse door activity for Phase 4.
+
+Run:
+    python -m app.generator.door_event_data
+    python -m app.generator.door_event_data --replace
+"""
+
+import argparse
+import random
+import sqlite3
+from datetime import datetime, timedelta
+
+from app.database.database import DATABASE_PATH
+from scripts.phase10_generation_config import get_generator_seed
+
+SEED = get_generator_seed('door_events')
+SIMULATION_START = datetime(2026, 10, 22, 0, 0, 0)
+SIMULATION_DAYS = 7
+
+
+def _load_zones(connection):
+    rows = connection.execute(
+        """
+        SELECT zone_id, zone_type
+        FROM zones
+        WHERE lifecycle_state = 'ACTIVE'
+        ORDER BY zone_id
+        """
+    ).fetchall()
+
+    if len(rows) != 100:
+        raise RuntimeError(
+            f"Expected 100 active zones; found {len(rows)}."
+        )
+    return rows
+
+
+def generate_door_events(replace=False):
+    rng = random.Random(SEED)
+    connection = sqlite3.connect(DATABASE_PATH)
+    connection.execute("PRAGMA foreign_keys = ON")
+
+    try:
+        existing = connection.execute(
+            "SELECT COUNT(*) FROM door_events"
+        ).fetchone()[0]
+
+        if existing and not replace:
+            raise RuntimeError(
+                f"door_events already contains {existing:,} rows. "
+                "Use --replace only if you intentionally want to regenerate it."
+            )
+
+        zones = _load_zones(connection)
+        if replace:
+            connection.execute("DELETE FROM door_events")
+
+        simulation_end = SIMULATION_START + timedelta(days=SIMULATION_DAYS)
+        event_records = []
+        event_number = 0
+
+        for zone_id, zone_type in zones:
+            # Loading bays are busier; freezer/cold doors are opened less often.
+            if zone_type == "LOADING":
+                interval_range = (35, 120)
+                duration_range = (30, 600)
+            elif zone_type in ("FREEZER", "COLD"):
+                interval_range = (100, 260)
+                duration_range = (10, 150)
+            else:
+                interval_range = (60, 190)
+                duration_range = (15, 240)
+
+            current = SIMULATION_START + timedelta(
+                minutes=rng.randint(0, 45)
+            )
+            door_identifier = f"DOOR-{zone_id}-01"
+
+            while current < simulation_end:
+                duration = rng.randint(*duration_range)
+
+                # A small fraction of cycles are abnormal, while retaining
+                # a coherent open-to-close sequence.
+                roll = rng.random()
+                if roll < 0.005:
+                    opening_type = "FORCED_OPEN"
+                else:
+                    opening_type = "OPENED"
+
+                event_number += 1
+                event_records.append(
+                    (
+                        f"DR-{event_number:08d}",
+                        zone_id,
+                        door_identifier,
+                        opening_type,
+                        current.strftime("%Y-%m-%d %H:%M:%S"),
+                        None,
+                        "SENSOR",
+                    )
+                )
+
+                if roll >= 0.005 and roll < 0.025 and duration >= 60:
+                    held_at = current + timedelta(seconds=min(60, duration // 2))
+                    event_number += 1
+                    event_records.append(
+                        (
+                            f"DR-{event_number:08d}",
+                            zone_id,
+                            door_identifier,
+                            "HELD_OPEN",
+                            held_at.strftime("%Y-%m-%d %H:%M:%S"),
+                            int((held_at - current).total_seconds()),
+                            "SENSOR",
+                        )
+                    )
+
+                closed_at = current + timedelta(seconds=duration)
+                event_number += 1
+                event_records.append(
+                    (
+                        f"DR-{event_number:08d}",
+                        zone_id,
+                        door_identifier,
+                        "CLOSED",
+                        closed_at.strftime("%Y-%m-%d %H:%M:%S"),
+                        duration,
+                        "SENSOR",
+                    )
+                )
+
+                current += timedelta(
+                    minutes=rng.randint(*interval_range)
+                )
+
+        connection.executemany(
+            """
+            INSERT INTO door_events (
+                door_event_id, zone_id, door_identifier, event_type,
+                event_timestamp, duration_seconds, recorded_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            event_records,
+        )
+
+        actual = connection.execute(
+            "SELECT COUNT(*) FROM door_events"
+        ).fetchone()[0]
+        if actual != len(event_records):
+            raise RuntimeError(
+                f"Expected {len(event_records):,} door events; found {actual:,}."
+            )
+
+        connection.commit()
+
+        print("Door event generation successful!")
+        print("Active zones:", len(zones))
+        print("Door identifiers:", len(zones))
+        print("Door events inserted:", f"{len(event_records):,}")
+        print("Simulation start:", SIMULATION_START.isoformat(sep=" "))
+        print("Simulation days:", SIMULATION_DAYS)
+        print("Event type distribution:")
+        for event_type, count in connection.execute(
+            """
+            SELECT event_type, COUNT(*)
+            FROM door_events
+            GROUP BY event_type
+            ORDER BY event_type
+            """
+        ):
+            print(f"  {event_type}: {count:,}")
+        print("Random seed:", SEED)
+
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--replace", action="store_true",
+        help="Delete existing door events before generating new ones.",
+    )
+    args = parser.parse_args()
+    generate_door_events(args.replace)
+
+
+if __name__ == "__main__":
+    main()
+
+
+================================================================================
+app/generator/inventory_data.py
+================================================================================
+
+"""Generate inventory lots and their zone assignments."""
+
+import random
+import sqlite3
+from datetime import datetime, timedelta
+
+from app.database.database import DATABASE_PATH
+from scripts.phase10_generation_config import get_generator_seed
+
+SEED = get_generator_seed('inventory_lots')
+LOT_COUNT = 10_000
+
+BASE_DATE = datetime(2026, 1, 1)
+
+PRODUCT_ZONE_MAPPING = {
+    "DAIRY": "COLD",
+    "PRODUCE": "COLD",
+    "FROZEN_FOOD": "FREEZER",
+    "PHARMA": "COLD",
+    "ELECTRONICS": "AMBIENT",
+}
+
+
+def format_timestamp(value):
+    return value.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def generate_inventory():
+    rng = random.Random(SEED)
+
+    connection = sqlite3.connect(DATABASE_PATH)
+    connection.execute("PRAGMA foreign_keys = ON")
+
+    try:
+        cursor = connection.cursor()
+
+        # Check prerequisite master data.
+        warehouse_count = cursor.execute(
+            "SELECT COUNT(*) FROM warehouses"
+        ).fetchone()[0]
+
+        zone_count = cursor.execute(
+            "SELECT COUNT(*) FROM zones"
+        ).fetchone()[0]
+
+        requirement_count = cursor.execute(
+            "SELECT COUNT(*) FROM storage_requirements"
+        ).fetchone()[0]
+
+        if warehouse_count != 10:
+            raise RuntimeError(
+                f"Expected 10 warehouses, found {warehouse_count}."
+            )
+
+        if zone_count != 100:
+            raise RuntimeError(
+                f"Expected 100 zones, found {zone_count}."
+            )
+
+        if requirement_count != 5:
+            raise RuntimeError(
+                f"Expected 5 requirements, found {requirement_count}."
+            )
+
+        existing_lots = cursor.execute(
+            "SELECT COUNT(*) FROM inventory_lots"
+        ).fetchone()[0]
+
+        if existing_lots:
+            raise RuntimeError(
+                "Inventory lots already exist. "
+                "Stopping to prevent duplicate records."
+            )
+
+        # Read storage requirement IDs.
+        requirements = {
+            product_type: requirement_id
+            for requirement_id, product_type
+            in cursor.execute(
+                """
+                SELECT requirement_id, product_type
+                FROM storage_requirements
+                """
+            ).fetchall()
+        }
+
+        if set(requirements) != set(PRODUCT_ZONE_MAPPING):
+            raise RuntimeError(
+                "Storage requirement product types do not match "
+                "the inventory generator configuration."
+            )
+
+        # Read compatible zones.
+        zones_by_type = {}
+
+        for zone_type in set(PRODUCT_ZONE_MAPPING.values()):
+            zones_by_type[zone_type] = cursor.execute(
+                """
+                SELECT zone_id
+                FROM zones
+                WHERE zone_type = ?
+                ORDER BY zone_id
+                """,
+                (zone_type,),
+            ).fetchall()
+
+            if not zones_by_type[zone_type]:
+                raise RuntimeError(
+                    f"No zones found for type {zone_type}."
+                )
+
+        product_types = list(PRODUCT_ZONE_MAPPING.keys())
+
+        lot_records = []
+        assignment_records = []
+
+        for number in range(1, LOT_COUNT + 1):
+            lot_id = f"LOT-{number:06d}"
+
+            product_type = rng.choice(product_types)
+
+            requirement_id = requirements[product_type]
+
+            compatible_zone_type = PRODUCT_ZONE_MAPPING[product_type]
+
+            zone_id = rng.choice(
+                zones_by_type[compatible_zone_type]
+            )[0]
+
+            received_at = BASE_DATE + timedelta(
+                days=rng.randint(0, 300),
+                hours=rng.randint(0, 23),
+                minutes=rng.randint(0, 59),
+            )
+
+            expiry_date = received_at + timedelta(
+                days=rng.randint(30, 730)
+            )
+
+            quantity = rng.randint(10, 1000)
+
+            product_name = (
+                f"{product_type.replace('_', ' ').title()} "
+                f"Batch {number:06d}"
+            )
+
+            lot_records.append(
+                (
+                    lot_id,
+                    product_type,
+                    product_name,
+                    quantity,
+                    "UNITS",
+                    requirement_id,
+                    format_timestamp(received_at),
+                    format_timestamp(expiry_date),
+                    "STORED",
+                    format_timestamp(received_at),
+                )
+            )
+
+            assignment_records.append(
+                (
+                    lot_id,
+                    zone_id,
+                    format_timestamp(received_at),
+                    None,
+                    "Initial compatible storage placement",
+                    format_timestamp(received_at),
+                )
+            )
+
+        # Insert inventory lots.
+        cursor.executemany(
+            """
+            INSERT INTO inventory_lots (
+                lot_id,
+                product_type,
+                product_name,
+                quantity,
+                unit_of_measure,
+                requirement_id,
+                received_at,
+                expiry_date,
+                lifecycle_state,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            lot_records,
+        )
+
+        # Insert lot-zone assignments.
+        cursor.executemany(
+            """
+            INSERT INTO lot_zone_assignments (
+                lot_id,
+                zone_id,
+                assigned_at,
+                released_at,
+                assignment_reason,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            assignment_records,
+        )
+
+        connection.commit()
+
+        print("Inventory generation successful!")
+        print("Inventory lots:", len(lot_records))
+        print("Lot-zone assignments:", len(assignment_records))
+
+        print("\nLots by product type:")
+
+        results = cursor.execute(
+            """
+            SELECT product_type, COUNT(*)
+            FROM inventory_lots
+            GROUP BY product_type
+            ORDER BY product_type
+            """
+        ).fetchall()
+
+        for product_type, count in results:
+            print(f"{product_type}: {count:,}")
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
+
+
+if __name__ == "__main__":
+    generate_inventory()
+
+
+================================================================================
+app/generator/sensor_data.py
+================================================================================
+
+"""Generate sensors and their zone assignments."""
+
+import random
+import sqlite3
+from datetime import datetime, timedelta
+
+from app.database.database import DATABASE_PATH
+from scripts.phase10_generation_config import get_generator_seed
+
+SEED = get_generator_seed('sensors')
+SENSOR_TYPES = [
+    "TEMP",
+    "TEMP",
+    "HUMIDITY",
+    "OCCUPANCY",
+    "MULTI",
+]
+
+MANUFACTURERS = [
+    "Honeywell",
+    "Siemens",
+    "Bosch",
+    "Sensirion",
+    "Generic",
+]
+
+
+def generate_sensors():
+    random.seed(SEED)
+
+    connection = sqlite3.connect(DATABASE_PATH)
+    connection.execute("PRAGMA foreign_keys = ON")
+
+    try:
+        cursor = connection.cursor()
+
+        zone_count = cursor.execute(
+            "SELECT COUNT(*) FROM zones"
+        ).fetchone()[0]
+
+        if zone_count != 100:
+            raise RuntimeError(
+                f"Expected 100 zones, found {zone_count}."
+            )
+
+        existing = cursor.execute(
+            "SELECT COUNT(*) FROM sensors"
+        ).fetchone()[0]
+
+        if existing:
+            raise RuntimeError(
+                "Sensors already exist. Stopping to prevent duplicates."
+            )
+
+        zones = cursor.execute(
+            "SELECT zone_id FROM zones ORDER BY zone_id"
+        ).fetchall()
+
+        now = datetime.now()
+        sensor_records = []
+        assignment_records = []
+
+        sensor_number = 0
+
+        for (zone_id,) in zones:
+            for sensor_type in SENSOR_TYPES:
+                sensor_number += 1
+
+                sensor_id = f"SEN-{sensor_number:04d}"
+
+                installation_date = now - timedelta(
+                    days=random.randint(30, 365)
+                )
+
+                calibration_due = installation_date + timedelta(
+                    days=180
+                )
+
+                sensor_records.append(
+                    (
+                        sensor_id,
+                        f"{sensor_type} Sensor {sensor_number:04d}",
+                        sensor_type,
+                        random.choice(MANUFACTURERS),
+                        installation_date.strftime("%Y-%m-%d %H:%M:%S"),
+                        calibration_due.strftime("%Y-%m-%d %H:%M:%S"),
+                        "ACTIVE",
+                        installation_date.strftime("%Y-%m-%d %H:%M:%S"),
+                    )
+                )
+
+                assignment_records.append(
+                    (
+                        sensor_id,
+                        zone_id,
+                        installation_date.strftime("%Y-%m-%d %H:%M:%S"),
+                        None,
+                        "Initial sensor installation",
+                        installation_date.strftime("%Y-%m-%d %H:%M:%S"),
+                    )
+                )
+
+        cursor.executemany(
+            """
+            INSERT INTO sensors (
+                sensor_id,
+                sensor_name,
+                sensor_type,
+                manufacturer,
+                installation_date,
+                calibration_due_date,
+                lifecycle_state,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            sensor_records,
+        )
+
+        cursor.executemany(
+            """
+            INSERT INTO sensor_zone_assignments (
+                sensor_id,
+                zone_id,
+                effective_from,
+                effective_to,
+                assignment_reason,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            assignment_records,
+        )
+
+        connection.commit()
+
+        print("Sensor generation successful!")
+        print("Total zones:", len(zones))
+        print("Sensors per zone:", len(SENSOR_TYPES))
+        print("Total sensors:", len(sensor_records))
+        print("Sensor-zone assignments:", len(assignment_records))
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
+
+
+if __name__ == "__main__":
+    generate_sensors()
+
+
+================================================================================
+app/generator/sensor_reading_data.py
+================================================================================
+"""Generate deterministic, realistic sensor readings for Phase 4.
+
+Run:
+    python -m app.generator.sensor_reading_data
+    python -m app.generator.sensor_reading_data --count 5000
+    python -m app.generator.sensor_reading_data --replace
+
+The default creates exactly 1,000,000 readings (2,000 per sensor when
+the database contains the expected 500 sensors).
+"""
+
+import argparse
+import math
+import random
+import sqlite3
+from datetime import datetime, timedelta
+
+from app.database.database import DATABASE_PATH
+from scripts.phase10_generation_config import get_generator_seed
+
+SEED = get_generator_seed('sensor_readings')
+DEFAULT_READING_COUNT = 1_000_000
+READING_INTERVAL_MINUTES = 5
+SIMULATION_START = datetime(2026, 10, 22, 0, 0, 0)
+BATCH_SIZE = 10_000
+
+# Approximate normal operating temperatures by zone type (Celsius).
+TEMPERATURE_BASELINES = {
+    "FREEZER": -18.0,
+    "COLD": 4.0,
+    "HOT": 28.0,
+    "AMBIENT": 22.0,
+    "LOADING": 20.0,
+}
+HUMIDITY_BASELINES = {
+    "FREEZER": 55.0,
+    "COLD": 60.0,
+    "HOT": 45.0,
+    "AMBIENT": 48.0,
+    "LOADING": 58.0,
+}
+
+
+def _clamp(value, lower, upper):
+    return max(lower, min(upper, value))
+
+
+def _load_sensors(connection):
+    """Load each sensor with its currently assigned zone characteristics."""
+    rows = connection.execute(
+        """
+        SELECT s.sensor_id, s.sensor_type, z.zone_id, z.zone_type,
+               z.max_capacity
+        FROM sensors AS s
+        JOIN sensor_zone_assignments AS a
+          ON a.sensor_id = s.sensor_id
+         AND a.effective_to IS NULL
+        JOIN zones AS z ON z.zone_id = a.zone_id
+        WHERE s.lifecycle_state = 'ACTIVE'
+        ORDER BY s.sensor_id
+        """
+    ).fetchall()
+
+    if len(rows) != 500:
+        raise RuntimeError(
+            f"Expected 500 active sensors with current zone assignments; "
+            f"found {len(rows)}. Check Phase 3 data before continuing."
+        )
+
+    sensor_ids = [row[0] for row in rows]
+    if len(set(sensor_ids)) != len(sensor_ids):
+        raise RuntimeError("A sensor has multiple current zone assignments.")
+
+    return rows
+
+
+def _make_reading(sensor, index, rng):
+    sensor_id, sensor_type, _zone_id, zone_type, max_capacity = sensor
+    timestamp = SIMULATION_START + timedelta(
+        minutes=index * READING_INTERVAL_MINUTES
+    )
+
+    # Smooth daily cycle plus small random variation.
+    day_angle = 2.0 * math.pi * (
+        (timestamp.hour * 60 + timestamp.minute) / 1440.0
+    )
+    daily_wave = math.sin(day_angle - math.pi / 2.0)
+
+    temperature = None
+    humidity = None
+    occupancy = None
+
+    if sensor_type in ("TEMP", "MULTI"):
+        baseline = TEMPERATURE_BASELINES.get(zone_type, 22.0)
+        temperature = round(
+            baseline + 0.7 * daily_wave + rng.gauss(0, 0.22), 2
+        )
+
+    if sensor_type in ("HUMIDITY", "MULTI"):
+        baseline = HUMIDITY_BASELINES.get(zone_type, 50.0)
+        humidity = round(
+            _clamp(baseline + 2.0 * daily_wave + rng.gauss(0, 1.2), 0, 100),
+            2,
+        )
+
+    if sensor_type in ("OCCUPANCY", "MULTI"):
+        # Keep occupancy realistic and within the zone's declared capacity.
+        capacity = max(1, int(max_capacity))
+        typical_load = 0.16 + 0.08 * (1.0 + daily_wave)
+        occupancy = int(
+            _clamp(
+                round(capacity * typical_load + rng.gauss(0, capacity * 0.025)),
+                0,
+                capacity,
+            )
+        )
+
+    battery = round(
+        _clamp(98.0 - (index * READING_INTERVAL_MINUTES / 1440.0) * 0.025
+               + rng.uniform(-0.08, 0.08), 0, 100),
+        2,
+    )
+    signal = round(_clamp(rng.gauss(-62.0, 7.0), -100, -25), 2)
+    received_at = timestamp + timedelta(seconds=rng.randint(1, 45))
+
+    reading_id = f"RDG-{sensor_id}-{index + 1:04d}"
+
+    return (
+        reading_id,
+        sensor_id,
+        timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+        temperature,
+        humidity,
+        occupancy,
+        battery,
+        signal,
+        received_at.strftime("%Y-%m-%d %H:%M:%S"),
+    )
+
+
+def generate_sensor_readings(reading_count=DEFAULT_READING_COUNT, replace=False):
+    if reading_count < 1:
+        raise ValueError("reading_count must be at least 1.")
+
+    rng = random.Random(SEED)
+    connection = sqlite3.connect(DATABASE_PATH)
+    connection.execute("PRAGMA foreign_keys = ON")
+
+    try:
+        existing = connection.execute(
+            "SELECT COUNT(*) FROM sensor_readings"
+        ).fetchone()[0]
+
+        if existing and not replace:
+            raise RuntimeError(
+                f"sensor_readings already contains {existing:,} rows. "
+                "Use --replace only if you intentionally want to regenerate it."
+            )
+
+        sensors = _load_sensors(connection)
+
+        if replace:
+            connection.execute("DELETE FROM sensor_readings")
+
+        base, remainder = divmod(reading_count, len(sensors))
+        batch = []
+        inserted = 0
+
+        for sensor_index, sensor in enumerate(sensors):
+            sensor_reading_count = base + (1 if sensor_index < remainder else 0)
+
+            for reading_index in range(sensor_reading_count):
+                batch.append(_make_reading(sensor, reading_index, rng))
+
+                if len(batch) >= BATCH_SIZE:
+                    connection.executemany(
+                        """
+                        INSERT INTO sensor_readings (
+                            reading_id, sensor_id, recorded_at,
+                            temperature_c, humidity_pct, occupancy_count,
+                            battery_pct, signal_strength, received_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        batch,
+                    )
+                    inserted += len(batch)
+                    batch.clear()
+
+        if batch:
+            connection.executemany(
+                """
+                INSERT INTO sensor_readings (
+                    reading_id, sensor_id, recorded_at,
+                    temperature_c, humidity_pct, occupancy_count,
+                    battery_pct, signal_strength, received_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                batch,
+            )
+            inserted += len(batch)
+
+        actual = connection.execute(
+            "SELECT COUNT(*) FROM sensor_readings"
+        ).fetchone()[0]
+        if actual != reading_count:
+            raise RuntimeError(
+                f"Expected {reading_count:,} readings after insert; found {actual:,}."
+            )
+
+        connection.commit()
+
+        print("Sensor reading generation successful!")
+        print("Active sensors:", len(sensors))
+        print("Readings inserted:", f"{inserted:,}")
+        print("Total sensor_readings rows:", f"{actual:,}")
+        print("Reading interval:", f"{READING_INTERVAL_MINUTES} minutes")
+        print("Simulation start:", SIMULATION_START.isoformat(sep=" "))
+        print("Random seed:", SEED)
+
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--count", type=int, default=DEFAULT_READING_COUNT,
+        help="Total readings to generate (default: 1,000,000).",
+    )
+    parser.add_argument(
+        "--replace", action="store_true",
+        help="Delete existing sensor readings before generating new ones.",
+    )
+    args = parser.parse_args()
+    generate_sensor_readings(args.count, args.replace)
+
+
+if __name__ == "__main__":
+    main()
+
+
+================================================================================
+scripts/phase10_generation_config.py
+================================================================================
+from __future__ import annotations
+
+import argparse
+import json
+import random
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+MASTER_SEED = 20261022
+
+# Keep generator seeds explicit so each data domain is reproducible.
+GENERATOR_SEEDS = {
+    "warehouses": MASTER_SEED,
+    "zones": MASTER_SEED,
+    "sensors": MASTER_SEED,
+    "sensor_readings": MASTER_SEED,
+    "inventory_lots": MASTER_SEED,
+    "door_events": 20261023,
+    "alarms": MASTER_SEED,
+    "inspections": MASTER_SEED,
+}
+
+SCALE_PROFILES = {
+    "starter": {
+        "warehouses": 2,
+        "zones": 20,
+        "sensors": 100,
+        "sensor_readings": 20000,
+        "inventory_lots": 500,
+    },
+    "full": {
+        "warehouses": 10,
+        "zones": 100,
+        "sensors": 500,
+        "sensor_readings": 1000000,
+        "inventory_lots": 10000,
+    },
+}
+
+
+def get_scale_profile(name: str) -> dict:
+    if name not in SCALE_PROFILES:
+        raise ValueError(
+            f"Unknown scale profile '{name}'. "
+            f"Choose from: {', '.join(SCALE_PROFILES)}"
+        )
+
+    return SCALE_PROFILES[name].copy()
+
+
+def get_generator_seed(generator_name: str) -> int:
+    if generator_name not in GENERATOR_SEEDS:
+        raise ValueError(
+            f"Unknown generator: {generator_name}"
+        )
+
+    return GENERATOR_SEEDS[generator_name]
+
+
+def create_rng(generator_name: str) -> random.Random:
+    return random.Random(
+        get_generator_seed(generator_name)
+    )
+
+
+def warehouse_id(number: int) -> str:
+    return f"WH-{number:03d}"
+
+
+def zone_id(warehouse_number: int, zone_number: int) -> str:
+    return (
+        f"ZN-{warehouse_number:03d}-{zone_number:02d}"
+    )
+
+
+def sensor_id(sensor_number: int) -> str:
+    return f"SEN-{sensor_number:04d}"
+
+
+def lot_id(lot_number: int) -> str:
+    return f"LOT-2026-{lot_number:06d}"
+
+
+def reading_id(sensor_identifier: str, timestamp: str) -> str:
+    normalized = (
+        timestamp.replace("-", "")
+        .replace(":", "")
+        .replace(" ", "T")
+    )
+
+    return f"RDG-{sensor_identifier}-{normalized}"
+
+
+def build_configuration(profile_name: str) -> dict:
+    return {
+        "project": "Warehouse Risk Monitoring System",
+        "master_seed": MASTER_SEED,
+        "profile": profile_name,
+        "scale": get_scale_profile(profile_name),
+        "generator_seeds": GENERATOR_SEEDS,
+        "id_formats": {
+            "warehouse": "WH-{number:03d}",
+            "zone": "ZN-{warehouse_number:03d}-{zone_number:02d}",
+            "sensor": "SEN-{number:04d}",
+            "inventory_lot": "LOT-2026-{number:06d}",
+            "sensor_reading": "RDG-{sensor_id}-{normalized_timestamp}",
+        },
+        "reproducibility": {
+            "fixed_seed": True,
+            "stable_id_formats": True,
+            "same_seed_same_random_sequence": True,
+            "generator_integration_required": True,
+        },
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Warehouse data generation configuration"
+    )
+
+    parser.add_argument(
+        "--profile",
+        choices=sorted(SCALE_PROFILES),
+        default="full",
+    )
+
+    parser.add_argument(
+        "--output",
+        default="docs/phase10/generation_config.json",
+    )
+
+    args = parser.parse_args()
+
+    config = build_configuration(args.profile)
+
+    output_path = ROOT / args.output
+    output_path.parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    with output_path.open(
+        "w",
+        encoding="utf-8"
+    ) as file:
+        json.dump(config, file, indent=4)
+
+    print("========== GENERATION CONFIGURATION ==========")
+    print("Profile:", args.profile)
+    print("Master seed:", MASTER_SEED)
+
+    for entity, count in config["scale"].items():
+        print(f"{entity}: {count:,}")
+
+    print("\nGenerator seeds:")
+    for name, seed in GENERATOR_SEEDS.items():
+        print(f"{name}: {seed}")
+
+    print("\nConfiguration written to:")
+    print(output_path)
+
+
+if __name__ == "__main__":
+    main()
+
+================================================================================
+scripts/build_ground_truth.py
+================================================================================
+
+import csv
+import hashlib
+import json
+import sqlite3
+import statistics
+from collections import defaultdict
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DB_PATH = ROOT / "data" / "warehouse_monitor.db"
+OUTPUT_DIR = ROOT / "docs" / "phase10"
+
+OUTPUT_CSV = OUTPUT_DIR / "ground_truth.csv"
+OUTPUT_CATALOG = OUTPUT_DIR / "anomaly_catalog.md"
+OUTPUT_MANIFEST = OUTPUT_DIR / "source_manifest.json"
+
+# Reading gaps shorter than this are not flagged.
+MIN_GAP_SECONDS = 10 * 60
+
+OUTPUT_FIELDS = [
+    "ground_truth_id",
+    "issue_type",
+    "entity_type",
+    "entity_id",
+    "related_entity_ids",
+    "evidence",
+    "label_status",
+    "source_tables",
+]
+
+
+def table_columns(connection, table_name):
+    return {
+        row["name"]
+        for row in connection.execute(
+            f'PRAGMA table_info("{table_name}")'
+        )
+    }
+
+
+def first_column(columns, candidates):
+    for candidate in candidates:
+        if candidate in columns:
+            return candidate
+    return None
+
+
+def parse_timestamp(value):
+    if value is None:
+        return None
+
+    if isinstance(value, (int, float)):
+        # Support Unix timestamps in seconds or milliseconds.
+        number = float(value)
+        if number > 10_000_000_000:
+            number /= 1000
+        try:
+            return datetime.fromtimestamp(number, tz=timezone.utc)
+        except (ValueError, OverflowError, OSError):
+            return None
+
+    value = str(value).strip()
+    if not value:
+        return None
+
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def json_text(value):
+    return json.dumps(value, sort_keys=True, default=str)
+
+
+def add_candidate(
+    candidates,
+    issue_type,
+    entity_type,
+    entity_id,
+    related_ids,
+    evidence,
+    source_tables,
+):
+    candidates.append({
+        "issue_type": issue_type,
+        "entity_type": entity_type,
+        "entity_id": str(entity_id),
+        "related_entity_ids": json_text(related_ids),
+        "evidence": json_text(evidence),
+        "label_status": "REVIEW_REQUIRED",
+        "source_tables": json_text(source_tables),
+    })
+
+
+def detect_multi_zone_sensors(connection, candidates):
+    table = "sensor_zone_assignments"
+    existing = {
+        row["name"]
+        for row in connection.execute(
+            f'PRAGMA table_info("{table}")'
+        )
+    } if table in get_tables(connection) else set()
+
+    sensor_col = first_column(existing, ["sensor_id"])
+    zone_col = first_column(existing, ["zone_id"])
+
+    if not sensor_col or not zone_col:
+        print("SKIP: Multi-zone sensor check (required columns unavailable)")
+        return
+
+    rows = connection.execute(
+        f'SELECT "{sensor_col}", "{zone_col}" FROM "{table}"'
+    ).fetchall()
+
+    zones_by_sensor = defaultdict(set)
+    for row in rows:
+        if row[0] is not None and row[1] is not None:
+            zones_by_sensor[str(row[0])].add(str(row[1]))
+
+    count = 0
+    for sensor_id, zone_ids in sorted(zones_by_sensor.items()):
+        if len(zone_ids) > 1:
+            add_candidate(
+                candidates,
+                "SENSOR_ASSIGNED_TO_MULTIPLE_ZONES",
+                "sensor",
+                sensor_id,
+                {"zone_ids": sorted(zone_ids)},
+                {
+                    "distinct_zone_count": len(zone_ids),
+                    "note": (
+                        "Multiple zone assignments detected. Confirm "
+                        "whether assignments overlap in effective time "
+                        "or have an approved operational reason."
+                    ),
+                },
+                [table],
+            )
+            count += 1
+
+    print(f"Multi-zone sensor candidates: {count}")
+
+
+def detect_alarm_without_lot_links(connection, candidates):
+    tables = get_tables(connection)
+    if "alarms" not in tables or "alarm_lots" not in tables:
+        print("SKIP: Alarm-to-lot check (required tables unavailable)")
+        return
+
+    alarm_columns = table_columns(connection, "alarms")
+    link_columns = table_columns(connection, "alarm_lots")
+
+    alarm_id_col = first_column(alarm_columns, ["alarm_id", "id"])
+    alarm_type_col = first_column(alarm_columns, ["alarm_type", "type"])
+    link_alarm_col = first_column(link_columns, ["alarm_id"])
+
+    if not alarm_id_col or not alarm_type_col or not link_alarm_col:
+        print("SKIP: Alarm-to-lot check (required columns unavailable)")
+        return
+
+    linked_ids = {
+        str(row[0])
+        for row in connection.execute(
+            f'SELECT DISTINCT "{link_alarm_col}" '
+            f'FROM alarm_lots WHERE "{link_alarm_col}" IS NOT NULL'
+        )
+    }
+
+    rows = connection.execute(
+        f'SELECT "{alarm_id_col}", "{alarm_type_col}" '
+        f'FROM alarms ORDER BY "{alarm_id_col}"'
+    ).fetchall()
+
+    count = 0
+    expected_exceptions = 0
+
+    for row in rows:
+        alarm_id = str(row[0])
+        alarm_type = str(row[1]).upper()
+
+        # Door alarms are operational events. They do not necessarily
+        # represent an inventory impact and must not be labelled as
+        # missing inventory relationships by default.
+        if alarm_type == "DOOR_OPEN":
+            if alarm_id not in linked_ids:
+                expected_exceptions += 1
+            continue
+
+        if alarm_id not in linked_ids:
+            add_candidate(
+                candidates,
+                "ALARM_WITHOUT_INVENTORY_LOT_LINK",
+                "alarm",
+                alarm_id,
+                {"lot_ids": []},
+                {
+                    "note": (
+                        "Non-door alarm has no alarm_lots relationship. "
+                        "Review whether inventory impact was expected."
+                    )
+                },
+                ["alarms", "alarm_lots"],
+            )
+            count += 1
+
+    print(f"Unlinked non-door alarm candidates: {count}")
+    print(f"Unlinked DOOR_OPEN expected exceptions: {expected_exceptions}")
+
+
+def detect_reading_gaps(connection, candidates):
+    tables = get_tables(connection)
+    if "sensor_readings" not in tables:
+        print("SKIP: Reading-gap check (sensor_readings table unavailable)")
+        return
+
+    columns = table_columns(connection, "sensor_readings")
+    sensor_col = first_column(columns, ["sensor_id"])
+    timestamp_col = first_column(
+        columns,
+        ["recorded_at", "reading_timestamp", "timestamp", "reading_time"],
+    )
+
+    if not sensor_col or not timestamp_col:
+        print("SKIP: Reading-gap check (required columns unavailable)")
+        return
+
+    rows = connection.execute(
+        f'SELECT "{sensor_col}", "{timestamp_col}" '
+        f'FROM sensor_readings '
+        f'WHERE "{sensor_col}" IS NOT NULL '
+        f'AND "{timestamp_col}" IS NOT NULL '
+        f'ORDER BY "{sensor_col}", "{timestamp_col}"'
+    ).fetchall()
+
+    readings_by_sensor = defaultdict(list)
+    for row in rows:
+        parsed = parse_timestamp(row[1])
+        if parsed:
+            readings_by_sensor[str(row[0])].append(parsed)
+
+    intervals = []
+    sensor_intervals = {}
+
+    for sensor_id, timestamps in readings_by_sensor.items():
+        timestamps.sort()
+        gaps = [
+            (timestamps[index] - timestamps[index - 1]).total_seconds()
+            for index in range(1, len(timestamps))
+        ]
+        gaps = [gap for gap in gaps if gap > 0]
+        if gaps:
+            sensor_intervals[sensor_id] = gaps
+            intervals.extend(gaps)
+
+    if not intervals:
+        print("SKIP: Reading-gap check (no usable timestamp intervals)")
+        return
+
+    typical_interval = statistics.median(intervals)
+    threshold = max(MIN_GAP_SECONDS, typical_interval * 3)
+
+    count = 0
+    for sensor_id, timestamps in readings_by_sensor.items():
+        timestamps.sort()
+
+        for index in range(1, len(timestamps)):
+            gap_seconds = (
+                timestamps[index] - timestamps[index - 1]
+            ).total_seconds()
+
+            if gap_seconds > threshold:
+                add_candidate(
+                    candidates,
+                    "SENSOR_READING_GAP",
+                    "sensor",
+                    sensor_id,
+                    {},
+                    {
+                        "gap_start": timestamps[index - 1].isoformat(),
+                        "gap_end": timestamps[index].isoformat(),
+                        "gap_seconds": round(gap_seconds, 2),
+                        "threshold_seconds": round(threshold, 2),
+                        "database_median_interval_seconds": round(
+                            typical_interval, 2
+                        ),
+                    },
+                    ["sensor_readings"],
+                )
+                count += 1
+
+    print(f"Sensor reading-gap candidates: {count}")
+    print(f"Calculated reading-gap threshold: {threshold:.2f} seconds")
+
+
+def get_tables(connection):
+    return {
+        row[0]
+        for row in connection.execute("""
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table'
+              AND name NOT LIKE 'sqlite_%'
+        """)
+    }
+
+
+def write_catalog():
+    content = """# Phase 10 — Anomaly Catalog
+
+These labels are generated from evidence in the source database.
+They are stored separately from operational input data.
+
+All automatically generated records initially use
+`REVIEW_REQUIRED`. Review them against business rules before treating
+them as confirmed ground truth.
+
+| Issue type | Detection rule | Review required |
+|---|---|---|
+| `SENSOR_ASSIGNED_TO_MULTIPLE_ZONES` | A sensor has more than one distinct zone in sensor-zone assignments. | Confirm effective dates and approved multi-zone use. |
+| `SENSOR_READING_GAP` | Consecutive readings for a sensor are separated by more than the calculated threshold. | Confirm expected sampling cadence and outage context. |
+| `ALARM_WITHOUT_INVENTORY_LOT_LINK` | An alarm has no matching row in the alarm-lot bridge table. | Confirm whether the alarm should affect inventory. |
+
+## Reading-gap threshold
+
+The script calculates the median positive interval between readings
+across sensors. The detection threshold is the greater of:
+
+- 10 minutes
+- Three times the calculated median interval
+
+## Important
+
+This catalog does not modify source tables, create alarms, or assign
+remediation outcomes. It only writes a separate review dataset.
+"""
+    OUTPUT_CATALOG.write_text(content, encoding="utf-8")
+
+
+def main():
+    print("========== PHASE 10.3: GROUND TRUTH GENERATION ==========")
+
+    if not DB_PATH.exists():
+        raise SystemExit(f"Database not found: {DB_PATH}")
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    candidates = []
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+
+    try:
+        detect_multi_zone_sensors(connection, candidates)
+        detect_reading_gaps(connection, candidates)
+        detect_alarm_without_lot_links(connection, candidates)
+
+        # Stable ordering makes IDs reproducible across identical runs.
+        candidates.sort(
+            key=lambda item: (
+                item["issue_type"],
+                item["entity_type"],
+                item["entity_id"],
+                item["evidence"],
+            )
+        )
+
+        counters = defaultdict(int)
+        output_rows = []
+
+        for candidate in candidates:
+            issue_type = candidate["issue_type"]
+            counters[issue_type] += 1
+
+            candidate["ground_truth_id"] = (
+                f"GT-{issue_type}-{counters[issue_type]:06d}"
+            )
+
+            output_rows.append({
+                "ground_truth_id": candidate["ground_truth_id"],
+                **candidate,
+            })
+
+        with OUTPUT_CSV.open(
+            "w", newline="", encoding="utf-8"
+        ) as file:
+            writer = csv.DictWriter(file, fieldnames=OUTPUT_FIELDS)
+            writer.writeheader()
+            writer.writerows(output_rows)
+
+        write_catalog()
+
+        table_counts = {}
+        for table in sorted(get_tables(connection)):
+            table_counts[table] = connection.execute(
+                f'SELECT COUNT(*) FROM "{table}"'
+            ).fetchone()[0]
+
+    finally:
+        connection.close()
+
+    csv_hash = hashlib.sha256(OUTPUT_CSV.read_bytes()).hexdigest()
+
+    manifest = {
+        "phase": "10.3",
+        "database": "data/warehouse_monitor.db",
+        "ground_truth_file": "docs/phase10/ground_truth.csv",
+        "anomaly_catalog": "docs/phase10/anomaly_catalog.md",
+        "label_policy": (
+            "Automatically detected candidates require manual review."
+        ),
+        "ground_truth_rows": len(output_rows),
+        "issue_counts": dict(sorted(counters.items())),
+        "source_table_counts": table_counts,
+        "ground_truth_sha256": csv_hash,
+    }
+
+    OUTPUT_MANIFEST.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+    print("\n========== GENERATION SUMMARY ==========")
+    print("Ground-truth rows:", len(output_rows))
+    for issue_type, count in sorted(counters.items()):
+        print(f"{issue_type}: {count}")
+
+    print("\nCreated:")
+    print(OUTPUT_CSV.relative_to(ROOT))
+    print(OUTPUT_CATALOG.relative_to(ROOT))
+    print(OUTPUT_MANIFEST.relative_to(ROOT))
+    print("\nSource database was not modified.")
+
+
+if __name__ == "__main__":
+    main()
+
+
+================================================================================
+scripts/build_sensor_scenarios.py
+================================================================================
+import csv
+import hashlib
+import json
+import sqlite3
+from datetime import datetime, timedelta
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+DB_PATH = ROOT / "data" / "warehouse_monitor.db"
+OUTPUT_DIR = ROOT / "docs" / "phase10"
+
+SCENARIO_FILE = OUTPUT_DIR / "controlled_sensor_scenarios.csv"
+GROUND_TRUTH_FILE = OUTPUT_DIR / "controlled_sensor_ground_truth.csv"
+MANIFEST_FILE = OUTPUT_DIR / "controlled_sensor_manifest.json"
+
+
+def stable_id(prefix, value):
+    digest = hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]
+    return f"{prefix}_{digest}"
+
+
+def write_csv(path, rows, fields):
+    with path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def main():
+    if not DB_PATH.exists():
+        raise FileNotFoundError(DB_PATH)
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    conn = sqlite3.connect(
+        f"file:{DB_PATH.as_posix()}?mode=ro",
+        uri=True,
+    )
+    conn.row_factory = sqlite3.Row
+
+    try:
+        sensors = conn.execute("""
+            SELECT sensor_id
+            FROM sensors
+            ORDER BY sensor_id
+        """).fetchall()
+
+        zones = conn.execute("""
+            SELECT zone_id
+            FROM zones
+            ORDER BY zone_id
+        """).fetchall()
+
+        date_range = conn.execute("""
+            SELECT MIN(recorded_at), MAX(recorded_at)
+            FROM sensor_readings
+        """).fetchone()
+
+        occupancy_sensor = conn.execute("""
+            SELECT sensor_id
+            FROM sensor_readings
+            WHERE occupancy_count IS NOT NULL
+            GROUP BY sensor_id
+            ORDER BY sensor_id
+            LIMIT 1
+        """).fetchone()
+
+        if len(sensors) < 4 or len(zones) < 2:
+            raise RuntimeError(
+                "At least four sensors and two zones are required."
+            )
+
+        if not date_range[0] or not occupancy_sensor:
+            raise RuntimeError(
+                "Reading date range or occupancy sensor is unavailable."
+            )
+
+        base_time = datetime.fromisoformat(date_range[0]) + timedelta(hours=12)
+
+        # Select four distinct sensors deterministically.
+        selected_sensors = [row["sensor_id"] for row in sensors[:4]]
+
+        # Use a sensor with actual occupancy readings for the occupancy fixture.
+        occupancy_sensor_id = occupancy_sensor["sensor_id"]
+
+        if occupancy_sensor_id not in selected_sensors:
+            selected_sensors[3] = occupancy_sensor_id
+
+        # Find the existing active zone assignment for the first sensor.
+        first_sensor = selected_sensors[0]
+
+        current_assignment = conn.execute("""
+            SELECT zone_id, effective_from
+            FROM sensor_zone_assignments
+            WHERE sensor_id = ?
+              AND effective_to IS NULL
+            ORDER BY effective_from DESC
+            LIMIT 1
+        """, (first_sensor,)).fetchone()
+
+        if not current_assignment:
+            raise RuntimeError(
+                f"No active zone assignment found for {first_sensor}"
+            )
+
+        original_zone = current_assignment["zone_id"]
+
+        alternative_zone = next(
+            row["zone_id"]
+            for row in zones
+            if row["zone_id"] != original_zone
+        )
+
+        # Use an actual sensor zone for the other fixtures where possible.
+        def get_sensor_zone(sensor_id):
+            row = conn.execute("""
+                SELECT zone_id
+                FROM sensor_zone_assignments
+                WHERE sensor_id = ?
+                  AND effective_to IS NULL
+                ORDER BY effective_from DESC
+                LIMIT 1
+            """, (sensor_id,)).fetchone()
+
+            return row["zone_id"] if row else zones[0]["zone_id"]
+
+        reading_sensor = selected_sensors[1]
+        outage_sensor = selected_sensors[2]
+
+        reading_zone = get_sensor_zone(reading_sensor)
+        outage_zone = get_sensor_zone(outage_sensor)
+        occupancy_zone = get_sensor_zone(occupancy_sensor_id)
+
+        t0 = base_time
+        t1 = base_time + timedelta(minutes=20)
+        t2 = base_time + timedelta(minutes=30)
+
+        scenarios = [
+            {
+                "scenario_id": "SYN-SENSOR-001",
+                "issue_type": "SENSOR_ASSIGNED_TO_MULTIPLE_ZONES",
+                "entity_type": "SENSOR",
+                "sensor_id": first_sensor,
+                "zone_id": original_zone,
+                "related_zone_id": alternative_zone,
+                "event_start": t0.isoformat(sep=" "),
+                "event_end": t2.isoformat(sep=" "),
+                "previous_reading_at": "",
+                "next_reading_at": "",
+                "gap_seconds": "",
+                "occupancy_count": "",
+                "occupancy_limit": "",
+                "scenario_origin": "CONTROLLED_SYNTHETIC",
+                "evidence": (
+                    f"Existing assignment to {original_zone} overlaps "
+                    f"a synthetic assignment to {alternative_zone} "
+                    f"from {t0} to {t2}."
+                ),
+            },
+            {
+                "scenario_id": "SYN-SENSOR-002",
+                "issue_type": "SENSOR_READING_GAP",
+                "entity_type": "SENSOR",
+                "sensor_id": reading_sensor,
+                "zone_id": reading_zone,
+                "related_zone_id": "",
+                "event_start": t0.isoformat(sep=" "),
+                "event_end": t1.isoformat(sep=" "),
+                "previous_reading_at": t0.isoformat(sep=" "),
+                "next_reading_at": t1.isoformat(sep=" "),
+                "gap_seconds": 1200,
+                "occupancy_count": "",
+                "occupancy_limit": "",
+                "scenario_origin": "CONTROLLED_SYNTHETIC",
+                "evidence": (
+                    "Synthetic consecutive reading interval is 1200 seconds, "
+                    "exceeding the 900-second threshold."
+                ),
+            },
+            {
+                "scenario_id": "SYN-SENSOR-003",
+                "issue_type": "SENSOR_OUTAGE",
+                "entity_type": "SENSOR",
+                "sensor_id": outage_sensor,
+                "zone_id": outage_zone,
+                "related_zone_id": "",
+                "event_start": t0.isoformat(sep=" "),
+                "event_end": t2.isoformat(sep=" "),
+                "previous_reading_at": "",
+                "next_reading_at": "",
+                "gap_seconds": 1800,
+                "occupancy_count": "",
+                "occupancy_limit": "",
+                "scenario_origin": "CONTROLLED_SYNTHETIC",
+                "evidence": (
+                    "Synthetic sensor outage lasting 1800 seconds. "
+                    "No outage row was inserted into the source database."
+                ),
+            },
+            {
+                "scenario_id": "SYN-SENSOR-004",
+                "issue_type": "OCCUPANCY_THRESHOLD_BREACH",
+                "entity_type": "SENSOR",
+                "sensor_id": occupancy_sensor_id,
+                "zone_id": occupancy_zone,
+                "related_zone_id": "",
+                "event_start": t0.isoformat(sep=" "),
+                "event_end": "",
+                "previous_reading_at": "",
+                "next_reading_at": "",
+                "gap_seconds": "",
+                "occupancy_count": 65,
+                "occupancy_limit": 50,
+                "scenario_origin": "CONTROLLED_SYNTHETIC",
+                "evidence": (
+                    "Synthetic occupancy count of 65 exceeds the "
+                    "fixture-specific configured limit of 50."
+                ),
+            },
+        ]
+
+    finally:
+        conn.close()
+
+    scenario_fields = list(scenarios[0].keys())
+    write_csv(SCENARIO_FILE, scenarios, scenario_fields)
+
+    ground_truth = []
+
+    for scenario in scenarios:
+        ground_truth.append({
+            "ground_truth_id": stable_id(
+                "GT", scenario["scenario_id"]
+            ),
+            "issue_type": scenario["issue_type"],
+            "entity_type": scenario["entity_type"],
+            "entity_id": scenario["sensor_id"],
+            "detected_at": scenario["event_start"],
+            "zone_id": scenario["zone_id"],
+            "related_zone_id": scenario["related_zone_id"],
+            "scenario_id": scenario["scenario_id"],
+            "scenario_origin": "CONTROLLED_SYNTHETIC",
+            "label_status": "CONFIRMED_SYNTHETIC",
+            "evidence": scenario["evidence"],
+        })
+
+    ground_truth_fields = list(ground_truth[0].keys())
+    write_csv(
+        GROUND_TRUTH_FILE,
+        ground_truth,
+        ground_truth_fields,
+    )
+
+    manifest = {
+        "phase": "10.4",
+        "project": "Warehouse Risk Monitoring System",
+        "scenario_count": len(scenarios),
+        "scenario_origin": "CONTROLLED_SYNTHETIC",
+        "source_database": str(DB_PATH.relative_to(ROOT)),
+        "source_database_modified": False,
+        "scenarios": [
+            {
+                "scenario_id": row["scenario_id"],
+                "issue_type": row["issue_type"],
+                "sensor_id": row["sensor_id"],
+                "zone_id": row["zone_id"],
+            }
+            for row in scenarios
+        ],
+        "files": [
+            str(SCENARIO_FILE.relative_to(ROOT)),
+            str(GROUND_TRUTH_FILE.relative_to(ROOT)),
+        ],
+    }
+
+    with MANIFEST_FILE.open("w", encoding="utf-8") as file:
+        json.dump(manifest, file, indent=4)
+
+    print("========== CONTROLLED SENSOR SCENARIOS ==========")
+
+    for row in scenarios:
+        print(
+            row["scenario_id"],
+            "|",
+            row["issue_type"],
+            "| Sensor:",
+            row["sensor_id"],
+            "| Zone:",
+            row["zone_id"],
+        )
+
+    print("\nScenario records:", len(scenarios))
+    print("Ground-truth records:", len(ground_truth))
+    print("Source database modified: NO")
+
+    print("\nGenerated files:")
+    print(SCENARIO_FILE)
+    print(GROUND_TRUTH_FILE)
+    print(MANIFEST_FILE)
+
+    print("\nPHASE 10.4 SCENARIO GENERATION PASSED.")
+
+
+if __name__ == "__main__":
+    main()
+
+
+================================================================================
+scripts/build_remediation_traceability.py
+================================================================================
+from __future__ import annotations
+
+import csv
+import json
+import sqlite3
+from collections import Counter
+from pathlib import Path
+from datetime import datetime, timezone
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DB_PATH = ROOT / "data" / "warehouse_monitor.db"
+OUTPUT_DIR = ROOT / "docs" / "phase10"
+
+CSV_PATH = OUTPUT_DIR / "remediation_traceability.csv"
+JSON_PATH = OUTPUT_DIR / "remediation_traceability_summary.json"
+
+
+def quote_identifier(value: str) -> str:
+    """Safely quote a SQLite identifier."""
+    return '"' + value.replace('"', '""') + '"'
+
+
+def load_table(conn, table_name):
+    query = f"SELECT * FROM {quote_identifier(table_name)}"
+    cursor = conn.execute(query)
+    columns = [item[0] for item in cursor.description]
+    return [
+        dict(zip(columns, row))
+        for row in cursor.fetchall()
+    ]
+
+
+def first_value(record, candidates):
+    for column in candidates:
+        if column in record and record[column] is not None:
+            return record[column]
+    return None
+
+
+def matching_records(records, column, value):
+    if value is None:
+        return []
+
+    return [
+        record for record in records
+        if record.get(column) == value
+    ]
+
+
+def main():
+    if not DB_PATH.exists():
+        raise FileNotFoundError(f"Database not found: {DB_PATH}")
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    conn = sqlite3.connect(
+        f"file:{DB_PATH.resolve()}?mode=ro",
+        uri=True
+    )
+    conn.row_factory = sqlite3.Row
+
+    try:
+        table_names = {
+            row["name"]
+            for row in conn.execute("""
+                SELECT name
+                FROM sqlite_master
+                WHERE type = 'table'
+            """)
+        }
+
+        required_tables = {
+            "alarms",
+            "alarm_lots",
+            "inventory_lots",
+            "inspections",
+            "remediations",
+        }
+
+        missing = required_tables - table_names
+        if missing:
+            raise RuntimeError(
+                f"Required tables missing: {sorted(missing)}"
+            )
+
+        alarms = load_table(conn, "alarms")
+        alarm_lots = load_table(conn, "alarm_lots")
+        inventory_lots = load_table(conn, "inventory_lots")
+        inspections = load_table(conn, "inspections")
+        remediations = load_table(conn, "remediations")
+
+        lots_by_id = {
+            lot.get("lot_id"): lot
+            for lot in inventory_lots
+            if lot.get("lot_id") is not None
+        }
+
+        rows = []
+
+        for alarm in alarms:
+            alarm_id = alarm.get("alarm_id")
+
+            linked_lot_rows = matching_records(
+                alarm_lots,
+                "alarm_id",
+                alarm_id
+            )
+
+            linked_lot_ids = sorted({
+                link.get("lot_id")
+                for link in linked_lot_rows
+                if link.get("lot_id") is not None
+            })
+
+            alarm_inspections = matching_records(
+                inspections,
+                "alarm_id",
+                alarm_id
+            )
+
+            alarm_remediations = matching_records(
+                remediations,
+                "alarm_id",
+                alarm_id
+            )
+
+            # Also include remediation records linked through inspections.
+            inspection_ids = {
+                item.get("inspection_id")
+                for item in alarm_inspections
+                if item.get("inspection_id") is not None
+            }
+
+            for remediation in remediations:
+                inspection_id = remediation.get("inspection_id")
+                if inspection_id in inspection_ids:
+                    if remediation not in alarm_remediations:
+                        alarm_remediations.append(remediation)
+
+            # Keep one report row per alarm-lot relationship.
+            # Alarms without a linked lot still receive one row.
+            report_lot_ids = linked_lot_ids or [None]
+
+            for lot_id in report_lot_ids:
+                lot = lots_by_id.get(lot_id, {})
+
+                rows.append({
+                    "alarm_id": alarm_id,
+                    "warehouse_id": alarm.get("warehouse_id"),
+                    "zone_id": alarm.get("zone_id"),
+                    "sensor_id": alarm.get("sensor_id"),
+                    "alarm_type": alarm.get("alarm_type"),
+                    "severity": alarm.get("severity"),
+                    "detected_at": alarm.get("detected_at"),
+                    "alarm_status": first_value(
+                        alarm,
+                        ["status", "lifecycle_status"]
+                    ),
+                    "lot_id": lot_id,
+                    "lot_status": first_value(
+                        lot,
+                        ["status", "lifecycle_status"]
+                    ),
+                    "product_id": lot.get("product_id"),
+                    "inspection_count": len(alarm_inspections),
+                    "inspection_ids": ";".join(
+                        str(item.get("inspection_id"))
+                        for item in alarm_inspections
+                        if item.get("inspection_id") is not None
+                    ),
+                    "remediation_count": len(alarm_remediations),
+                    "remediation_ids": ";".join(
+                        str(item.get("remediation_id"))
+                        for item in alarm_remediations
+                        if item.get("remediation_id") is not None
+                    ),
+                    "inventory_link_status": (
+                        "LINKED_TO_INVENTORY"
+                        if lot_id is not None
+                        else "NO_INVENTORY_LINK"
+                    ),
+                    "remediation_status": (
+                        "REMEDIATION_RECORDED"
+                        if alarm_remediations
+                        else "NO_REMEDIATION_RECORDED"
+                    ),
+                })
+
+        fieldnames = [
+            "alarm_id",
+            "warehouse_id",
+            "zone_id",
+            "sensor_id",
+            "alarm_type",
+            "severity",
+            "detected_at",
+            "alarm_status",
+            "lot_id",
+            "lot_status",
+            "product_id",
+            "inspection_count",
+            "inspection_ids",
+            "remediation_count",
+            "remediation_ids",
+            "inventory_link_status",
+            "remediation_status",
+        ]
+
+        with CSV_PATH.open(
+            "w",
+            newline="",
+            encoding="utf-8"
+        ) as file:
+            writer = csv.DictWriter(
+                file,
+                fieldnames=fieldnames
+            )
+            writer.writeheader()
+            writer.writerows(rows)
+
+        inventory_link_counts = Counter(
+            row["inventory_link_status"]
+            for row in rows
+        )
+
+        remediation_status_counts = Counter(
+            row["remediation_status"]
+            for row in rows
+        )
+
+        summary = {
+            "generated_at_utc": datetime.now(
+                timezone.utc
+            ).isoformat(),
+            "source_database": str(
+                DB_PATH.relative_to(ROOT)
+            ),
+            "source_database_modified": False,
+            "total_alarms": len(alarms),
+            "total_alarm_lot_links": len(alarm_lots),
+            "total_inventory_lots": len(inventory_lots),
+            "total_inspections": len(inspections),
+            "total_remediations": len(remediations),
+            "traceability_rows": len(rows),
+            "alarms_with_inventory_links": len({
+                row["alarm_id"]
+                for row in rows
+                if row["lot_id"] is not None
+            }),
+            "alarms_without_inventory_links": len({
+                row["alarm_id"]
+                for row in rows
+                if row["lot_id"] is None
+            }),
+            "inventory_link_status": dict(
+                inventory_link_counts
+            ),
+            "remediation_status": dict(
+                remediation_status_counts
+            ),
+            "limitations": [
+                "Inventory links reflect existing alarm_lots records.",
+                "This report does not infer missing alarm-to-lot links.",
+                "Remediation links are matched using alarm_id and inspection_id.",
+                "No source database records are inserted or updated."
+            ],
+        }
+
+        with JSON_PATH.open(
+            "w",
+            encoding="utf-8"
+        ) as file:
+            json.dump(
+                summary,
+                file,
+                indent=4
+            )
+
+        print("========== PHASE 10.5 TRACEABILITY REPORT ==========")
+        print("Alarms:", len(alarms))
+        print("Alarm-lot links:", len(alarm_lots))
+        print("Inventory lots:", len(inventory_lots))
+        print("Inspections:", len(inspections))
+        print("Remediations:", len(remediations))
+        print("Traceability rows:", len(rows))
+
+        print("\nInventory link status:")
+        for name, count in inventory_link_counts.items():
+            print(f"{name}: {count}")
+
+        print("\nRemediation status:")
+        for name, count in remediation_status_counts.items():
+            print(f"{name}: {count}")
+
+        print("\nGenerated:")
+        print(CSV_PATH)
+        print(JSON_PATH)
+
+        print("\nSource database modified: NO")
+        print("PHASE 10.5 REPORT GENERATION COMPLETED.")
+
+    finally:
+        conn.close()
+
+
+if __name__ == "__main__":
+    main()
+
+================================================================================
+scripts/build_generation_manifest.py
+================================================================================
+from __future__ import annotations
+
+import hashlib
+import json
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DB_PATH = ROOT / "data" / "warehouse_monitor.db"
+OUTPUT_PATH = ROOT / "docs" / "phase10" / "generation_manifest.json"
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+
+    return digest.hexdigest()
+
+
+def main():
+    if not DB_PATH.exists():
+        raise FileNotFoundError(DB_PATH)
+
+    OUTPUT_PATH.parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    conn = sqlite3.connect(
+        f"file:{DB_PATH.resolve()}?mode=ro",
+        uri=True
+    )
+
+    try:
+        tables = conn.execute("""
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table'
+              AND name NOT LIKE 'sqlite_%'
+            ORDER BY name
+        """).fetchall()
+
+        table_counts = {}
+
+        for (table_name,) in tables:
+            # Table names originate from sqlite_master.
+            quoted_name = '"' + table_name.replace('"', '""') + '"'
+
+            count = conn.execute(
+                f"SELECT COUNT(*) FROM {quoted_name}"
+            ).fetchone()[0]
+
+            table_counts[table_name] = count
+
+        integrity = conn.execute(
+            "PRAGMA integrity_check"
+        ).fetchone()[0]
+
+        foreign_key_errors = conn.execute(
+            "PRAGMA foreign_key_check"
+        ).fetchall()
+
+        if integrity != "ok":
+            raise RuntimeError(
+                f"Database integrity failure: {integrity}"
+            )
+
+        if foreign_key_errors:
+            raise RuntimeError(
+                f"Foreign-key violations: {len(foreign_key_errors)}"
+            )
+
+    finally:
+        conn.close()
+
+    manifest = {
+        "generated_at_utc": datetime.now(
+            timezone.utc
+        ).isoformat(),
+        "database": "data/warehouse_monitor.db",
+        "database_sha256": sha256_file(DB_PATH),
+        "database_size_bytes": DB_PATH.stat().st_size,
+        "master_seed": 20261022,
+        "table_counts": table_counts,
+        "total_tables": len(table_counts),
+        "database_integrity": integrity,
+        "foreign_key_violations": len(foreign_key_errors),
+        "source_database_modified": False,
+        "note": (
+            "This is a baseline manifest. It does not claim "
+            "that the existing generators have been unified "
+            "or that two full regenerations have been compared."
+        ),
+    }
+
+    with OUTPUT_PATH.open(
+        "w",
+        encoding="utf-8"
+    ) as file:
+        json.dump(manifest, file, indent=4)
+
+    print("========== GENERATION BASELINE MANIFEST ==========")
+    print("Tables:", len(table_counts))
+
+    for table, count in table_counts.items():
+        print(f"{table}: {count:,}")
+
+    print("\nDatabase SHA-256:")
+    print(manifest["database_sha256"])
+
+    print("\nManifest:")
+    print(OUTPUT_PATH)
+
+
+if __name__ == "__main__":
+    main()
+
+================================================================================
+scripts/validate_phase10.py
+================================================================================
+from __future__ import annotations
+
+import csv
+import hashlib
+import json
+import sqlite3
+import sys
+from pathlib import Path
+from collections import Counter
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DB_PATH = ROOT / "data" / "warehouse_monitor.db"
+PHASE_DIR = ROOT / "docs" / "phase10"
+
+EXPECTED_TABLE_COUNTS = {
+    "warehouses": 10,
+    "zones": 100,
+    "sensors": 500,
+    "sensor_readings": 1_000_000,
+    "inventory_lots": 10_000,
+    "sensor_zone_assignments": 500,
+    "sensor_outages": 0,
+}
+
+EXPECTED_SENSOR_SCENARIOS = {
+    "SENSOR_ASSIGNED_TO_MULTIPLE_ZONES",
+    "SENSOR_READING_GAP",
+    "SENSOR_OUTAGE",
+    "OCCUPANCY_THRESHOLD_BREACH",
+}
+
+
+def check(condition, message):
+    if not condition:
+        raise AssertionError(message)
+
+    print(f"PASS: {message}")
+
+
+def read_csv(path):
+    check(path.exists(), f"File exists: {path.relative_to(ROOT)}")
+
+    with path.open(
+        "r",
+        newline="",
+        encoding="utf-8"
+    ) as file:
+        return list(csv.DictReader(file))
+
+
+def validate_database():
+    print("\n========== DATABASE VALIDATION ==========")
+
+    check(DB_PATH.exists(), "Source database exists")
+
+    conn = sqlite3.connect(
+        f"file:{DB_PATH.resolve()}?mode=ro",
+        uri=True
+    )
+
+    try:
+        integrity = conn.execute(
+            "PRAGMA integrity_check"
+        ).fetchone()[0]
+
+        check(
+            integrity == "ok",
+            "SQLite integrity check"
+        )
+
+        foreign_key_errors = conn.execute(
+            "PRAGMA foreign_key_check"
+        ).fetchall()
+
+        check(
+            len(foreign_key_errors) == 0,
+            "No foreign-key violations"
+        )
+
+        tables = {
+            row[0]
+            for row in conn.execute("""
+                SELECT name
+                FROM sqlite_master
+                WHERE type = 'table'
+                  AND name NOT LIKE 'sqlite_%'
+            """)
+        }
+
+        check(
+            len(tables) == 15,
+            f"Expected 15 tables; found {len(tables)}"
+        )
+
+        for table, expected_count in EXPECTED_TABLE_COUNTS.items():
+            check(
+                table in tables,
+                f"Required table exists: {table}"
+            )
+
+            quoted = '"' + table.replace('"', '""') + '"'
+
+            actual_count = conn.execute(
+                f"SELECT COUNT(*) FROM {quoted}"
+            ).fetchone()[0]
+
+            check(
+                actual_count == expected_count,
+                f"{table}: expected {expected_count:,}, found {actual_count:,}"
+            )
+
+        return tables
+
+    finally:
+        conn.close()
+
+
+def validate_data_dictionary(tables):
+    print("\n========== DATA DICTIONARY VALIDATION ==========")
+
+    dictionary_path = PHASE_DIR / "data_dictionary.json"
+    check(
+        dictionary_path.exists(),
+        "Data dictionary JSON exists"
+    )
+
+    with dictionary_path.open(encoding="utf-8") as file:
+        dictionary = json.load(file)
+
+    # Support either a direct table mapping or a tables wrapper.
+    documented_tables = dictionary.get(
+        "tables",
+        dictionary
+    )
+
+    if isinstance(documented_tables, list):
+        documented_names = {
+            item.get("table_name", item.get("name"))
+            for item in documented_tables
+        }
+    else:
+        documented_names = set(documented_tables.keys())
+
+    check(
+        tables.issubset(documented_names),
+        "Every database table appears in the data dictionary"
+    )
+
+    for filename in (
+        "data_dictionary.csv",
+        "data_dictionary.md",
+    ):
+        check(
+            (PHASE_DIR / filename).exists(),
+            f"Data dictionary file exists: {filename}"
+        )
+
+
+def validate_sensor_scenarios():
+    print("\n========== CONTROLLED SENSOR SCENARIOS ==========")
+
+    scenario_path = PHASE_DIR / "controlled_sensor_scenarios.csv"
+    truth_path = PHASE_DIR / "controlled_sensor_ground_truth.csv"
+    manifest_path = PHASE_DIR / "controlled_sensor_manifest.json"
+
+    scenarios = read_csv(scenario_path)
+    truth = read_csv(truth_path)
+
+    check(
+        len(scenarios) == 4,
+        f"Expected 4 controlled scenarios; found {len(scenarios)}"
+    )
+
+    check(
+        len(truth) == 4,
+        f"Expected 4 ground-truth records; found {len(truth)}"
+    )
+
+    scenario_types = {
+        row.get("issue_type")
+        for row in scenarios
+    }
+
+    check(
+        EXPECTED_SENSOR_SCENARIOS.issubset(scenario_types),
+        "All four expected sensor scenario types exist"
+    )
+
+    for row in scenarios:
+        check(
+            row.get("scenario_origin") == "CONTROLLED_SYNTHETIC",
+            f"{row.get('scenario_id')} has synthetic origin"
+        )
+
+    truth_types = {
+        row.get("issue_type")
+        for row in truth
+    }
+
+    check(
+        EXPECTED_SENSOR_SCENARIOS.issubset(truth_types),
+        "Ground truth contains all four scenario types"
+    )
+
+    for row in truth:
+        check(
+            row.get("label_status") == "CONFIRMED_SYNTHETIC",
+            f"{row.get('scenario_id')} has confirmed synthetic label"
+        )
+
+    check(
+        manifest_path.exists(),
+        "Controlled sensor manifest exists"
+    )
+
+    with manifest_path.open(encoding="utf-8") as file:
+        json.load(file)
+
+    print("PASS: Controlled sensor manifest is valid JSON")
+
+
+def validate_ground_truth():
+    print("\n========== ORIGINAL GROUND TRUTH ==========")
+
+    path = PHASE_DIR / "ground_truth.csv"
+    rows = read_csv(path)
+
+    print(
+        "PASS: Original ground-truth dataset may be empty "
+        "when no qualifying anomalies exist"
+    )
+
+    check(
+        all(row.get("issue_type") for row in rows),
+        "Every original ground-truth row has an issue type"
+    )
+
+    print("Original ground-truth records:", len(rows))
+
+    counts = Counter(
+        row["issue_type"]
+        for row in rows
+    )
+
+    for issue_type, count in sorted(counts.items()):
+        print(f"{issue_type}: {count}")
+
+
+def validate_remediation_report():
+    print("\n========== REMEDIATION TRACEABILITY ==========")
+
+    csv_path = PHASE_DIR / "remediation_traceability.csv"
+    json_path = PHASE_DIR / "remediation_traceability_summary.json"
+
+    rows = read_csv(csv_path)
+
+    check(
+        len(rows) > 0,
+        "Remediation traceability report is not empty"
+    )
+
+    required_columns = {
+        "alarm_id",
+        "lot_id",
+        "inspection_count",
+        "remediation_count",
+        "inventory_link_status",
+        "remediation_status",
+    }
+
+    check(
+        required_columns.issubset(rows[0].keys()),
+        "Remediation report contains required columns"
+    )
+
+    check(
+        json_path.exists(),
+        "Remediation summary JSON exists"
+    )
+
+    with json_path.open(encoding="utf-8") as file:
+        summary = json.load(file)
+
+    check(
+        summary.get("source_database_modified") is False,
+        "Remediation report confirms source database was not modified"
+    )
+
+
+def validate_generation_configuration():
+    print("\n========== GENERATION CONFIGURATION ==========")
+
+    config_path = PHASE_DIR / "generation_config.json"
+    manifest_path = PHASE_DIR / "generation_manifest.json"
+
+    check(
+        config_path.exists(),
+        "Generation configuration exists"
+    )
+
+    check(
+        manifest_path.exists(),
+        "Generation manifest exists"
+    )
+
+    with config_path.open(encoding="utf-8") as file:
+        config = json.load(file)
+
+    with manifest_path.open(encoding="utf-8") as file:
+        manifest = json.load(file)
+
+    check(
+        config.get("master_seed") == 20261022,
+        "Master seed is 20261022"
+    )
+
+    check(
+        config.get("profile") in {"starter", "full"},
+        "Generation profile is valid"
+    )
+
+    check(
+        manifest.get("database_integrity") == "ok",
+        "Generation manifest records valid database integrity"
+    )
+
+    check(
+        manifest.get("foreign_key_violations") == 0,
+        "Generation manifest records zero foreign-key violations"
+    )
+
+
+def validate_source_manifest():
+    print("\n========== SOURCE MANIFEST ==========")
+
+    path = PHASE_DIR / "source_manifest.json"
+
+    check(
+        path.exists(),
+        "Source manifest exists"
+    )
+
+    with path.open(encoding="utf-8") as file:
+        manifest = json.load(file)
+
+    check(
+        isinstance(manifest, dict),
+        "Source manifest is valid JSON object"
+    )
+
+
+def main():
+    print("========== PHASE 10 COMPREHENSIVE VALIDATION ==========")
+
+    tables = validate_database()
+    validate_data_dictionary(tables)
+    validate_sensor_scenarios()
+    validate_ground_truth()
+    validate_remediation_report()
+    validate_generation_configuration()
+    validate_source_manifest()
+
+    print("\n========== PHASE 10 VALIDATION RESULT ==========")
+    print("All Phase 10 validation checks passed.")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as exc:
+        print("\nPHASE 10 VALIDATION FAILED")
+        print(f"Reason: {exc}")
+        sys.exit(1)
+
+
+================================================================================
+scripts/finalize_submission.py
+================================================================================
+from future import annotations
+
+import csv
+import gzip
+import hashlib
+import json
+import re
+import sqlite3
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(file).resolve().parents[1]
+DB = ROOT / "data" / "warehouse_monitor.db"
+DOCS = ROOT / "docs" / "phase10"
+EXPORTS = ROOT / "exports"
+NOW = datetime.now(timezone.utc).isoformat()
+
+def sha256(path):
+h = hashlib.sha256()
+with path.open("rb") as f:
+for chunk in iter(lambda: f.read(1024 * 1024), b""):
+h.update(chunk)
+return h.hexdigest()
+
+def write_json(path, data):
+path.write_text(json.dumps(data, indent=2, default=str) + "\n", encoding="utf-8")
+
+def write_csv(path, rows, fields):
+with path.open("w", newline="", encoding="utf-8") as f:
+w = csv.DictWriter(f, fieldnames=fields)
+w.writeheader()
+w.writerows(rows)
+
+def run(command, timeout=None):
+print("\n$", " ".join(command))
+result = subprocess.run(
+command, cwd=ROOT, text=True,
+stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+timeout=timeout
+)
+print(result.stdout[-12000:])
+return result.returncode, result.stdout
+
+def main():
+if not DB.exists():
+raise FileNotFoundError(DB)
+
+DOCS.mkdir(parents=True, exist_ok=True)
+EXPORTS.mkdir(parents=True, exist_ok=True)
+
+# ---------------------------------------------------------
+# 1. Read-only operational database audit
+# ---------------------------------------------------------
+print("\n========== FINAL DATABASE AUDIT ==========")
+conn = sqlite3.connect(f"file:{DB.resolve()}?mode=ro", uri=True)
+conn.row_factory = sqlite3.Row
+try:
+integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
+fk_errors = conn.execute("PRAGMA foreign_key_check").fetchall()
+tables = [
+r[0] for r in conn.execute("""
+SELECT name FROM sqlite_master
+WHERE type='table' AND name NOT LIKE 'sqlite_%'
+ORDER BY name
+""")
+]
+counts = {
+table: conn.execute(
+'SELECT COUNT(*) FROM "' + table.replace('"', '""') + '"'
+).fetchone()[0]
+for table in tables
+}
+
+if integrity != "ok":
+raise RuntimeError(f"Database integrity check failed: {integrity}")
+if fk_errors:
+raise RuntimeError(f"Database has {len(fk_errors)} foreign-key violations")
+
+print("SQLite integrity:", integrity)
+print("Foreign-key violations:", len(fk_errors))
+for table, count in counts.items():
+print(f"{table}: {count:,}")
+
+# -----------------------------------------------------
+# 2. Controlled business edge cases, separate from DB
+# -----------------------------------------------------
+mapping = {
+"DAIRY": "COLD",
+"PRODUCE": "COLD",
+"FROZEN_FOOD": "FREEZER",
+"PHARMA": "COLD",
+"ELECTRONICS": "AMBIENT",
+}
+
+lot = conn.execute("""
+SELECT l.lot_id, l.product_type, z.zone_id, z.zone_type
+FROM inventory_lots l
+JOIN lot_zone_assignments a ON a.lot_id=l.lot_id
+JOIN zones z ON z.zone_id=a.zone_id
+ORDER BY l.lot_id
+LIMIT 1
+""").fetchone()
+
+incompatible = None
+if lot:
+wrong_zone = conn.execute("""
+SELECT zone_id, zone_type
+FROM zones
+WHERE zone_type <> ?
+ORDER BY zone_id
+LIMIT 1
+""", (mapping.get(lot["product_type"], ""),)).fetchone()
+
+if wrong_zone:
+incompatible = {
+"scenario_id": "SYN-BIZ-001",
+"issue_type": "INCOMPATIBLE_LOT_ZONE_ASSIGNMENT",
+"entity_type": "INVENTORY_LOT",
+"entity_id": lot["lot_id"],
+"related_entity_id": wrong_zone["zone_id"],
+"event_timestamp": "CONTROLLED_FIXTURE",
+"label_status": "CONFIRMED_SYNTHETIC",
+"scenario_origin": "CONTROLLED_SYNTHETIC",
+"evidence": (
+f"{lot['product_type']} requires "
+f"{mapping.get(lot['product_type'])}; "
+f"fixture assigns it to zone type "
+f"{wrong_zone['zone_type']}. No source database row changed."
+),
+}
+
+if incompatible is None:
+incompatible = {
+"scenario_id": "SYN-BIZ-001",
+"issue_type": "INCOMPATIBLE_LOT_ZONE_ASSIGNMENT",
+"entity_type": "INVENTORY_LOT",
+"entity_id": "SYN-LOT-2026-000001",
+"related_entity_id": "SYN-ZONE-INCOMPATIBLE-001",
+"event_timestamp": "CONTROLLED_FIXTURE",
+"label_status": "CONFIRMED_SYNTHETIC",
+"scenario_origin": "CONTROLLED_SYNTHETIC",
+"evidence": (
+"Negative fixture represents a lot assigned to a zone "
+"whose zone type does not satisfy the product's documented "
+"storage-zone mapping. It is not inserted into the source DB."
+),
+}
+
+unlinked_alarm = conn.execute("""
+SELECT a.alarm_id, a.alarm_type, a.zone_id, a.detected_at
+FROM alarms a
+LEFT JOIN alarm_lots al ON al.alarm_id=a.alarm_id
+WHERE al.alarm_id IS NULL
+ORDER BY a.alarm_id
+LIMIT 1
+""").fetchone()
+
+if unlinked_alarm:
+alarm_evidence = (
+f"Source example {unlinked_alarm['alarm_id']} "
+f"({unlinked_alarm['alarm_type']}) has no alarm_lots row. "
+"This is evidence of an unlinked alarm, not proof that inventory "
+"was affected; the fixture below explicitly models the missing-link "
+"case without changing the operational database."
+)
+alarm_entity = unlinked_alarm["alarm_id"]
+alarm_zone = unlinked_alarm["zone_id"] or "SYN-ZONE-001"
+alarm_time = unlinked_alarm["detected_at"] or "CONTROLLED_FIXTURE"
+else:
+alarm_evidence = (
+"Synthetic alarm is associated with an affected inventory lot "
+"but has no alarm_lots bridge row. No source database row changed."
+)
+alarm_entity = "SYN-ALARM-000001"
+alarm_zone = "SYN-ZONE-001"
+alarm_time = "CONTROLLED_FIXTURE"
+
+missing_link = {
+"scenario_id": "SYN-BIZ-002",
+"issue_type": "ALARM_MISSING_AFFECTED_LOT_LINK",
+"entity_type": "ALARM",
+"entity_id": alarm_entity,
+"related_entity_id": "SYN-LOT-2026-000002",
+"event_timestamp": alarm_time,
+"zone_id": alarm_zone,
+"label_status": "CONFIRMED_SYNTHETIC",
+"scenario_origin": "CONTROLLED_SYNTHETIC",
+"evidence": alarm_evidence,
+}
+
+edge_rows = [incompatible, missing_link]
+edge_fields = list(edge_rows[0].keys())
+write_csv(
+DOCS / "controlled_business_edge_cases.csv",
+edge_rows, edge_fields
+)
+write_csv(
+DOCS / "controlled_business_edge_case_ground_truth.csv",
+edge_rows, edge_fields
+)
+
+edge_manifest = {
+"generated_at_utc": NOW,
+"scenario_count": len(edge_rows),
+"scenario_origin": "CONTROLLED_SYNTHETIC",
+"source_database": "data/warehouse_monitor.db",
+"source_database_modified": False,
+"scenarios": [
+r["issue_type"] for r in edge_rows
+],
+"interpretation": (
+"These are isolated negative test fixtures, not operational "
+"database records. The fixtures test incompatible storage "
+"placement and missing alarm-to-affected-lot bridge links."
+),
+}
+write_json(DOCS / "controlled_business_edge_case_manifest.json", edge_manifest)
+
+finally:
+conn.close()
+
+# ---------------------------------------------------------
+# 3. Compressed SQL export, streamed from read-only DB
+# ---------------------------------------------------------
+print("\n========== COMPRESSED SQL SEED EXPORT ==========")
+sql_path = EXPORTS / "warehouse_monitor_seed.sql.gz"
+conn = sqlite3.connect(f"file:{DB.resolve()}?mode=ro", uri=True)
+try:
+with gzip.open(sql_path, "wt", encoding="utf-8", newline="\n") as out:
+out.write("-- Warehouse Risk Monitor SQLite seed export\n")
+out.write(f"-- Generated UTC: {NOW}\n")
+out.write("-- Source database opened read-only; source was not modified.\n")
+out.write("PRAGMA foreign_keys=OFF;\nBEGIN TRANSACTION;\n")
+for statement in conn.iterdump():
+out.write(statement + "\n")
+out.write("COMMIT;\nPRAGMA foreign_keys=ON;\n")
+finally:
+conn.close()
+
+sql_size = sql_path.stat().st_size
+print("SQL export:", sql_path.relative_to(ROOT))
+print("Compressed bytes:", f"{sql_size:,}")
+print("SHA-256:", sha256(sql_path))
+
+# ---------------------------------------------------------
+# 4. README corrections and implementation notes
+# ---------------------------------------------------------
+readme_path = ROOT / "README.md"
+readme = readme_path.read_text(encoding="utf-8") if readme_path.exists() else ""
+
+readme = re.sub(r"(?m)^(\s*)app.py(\s*)$", r"\1app/init.py\2", readme)
+readme = readme.replace("app.py", "app/__init__.py")
+
+if "## Final implementation verification" not in readme:
+readme += """
+Final implementation verification
+The following identifiers are the formats currently used by the implemented
+generators and database. They supersede any illustrative formats elsewhere in
+this README:
+Entity	Implemented format
+Warehouse	WH-{number:03d}
+Zone	ZN-{warehouse_number:03d}-{zone_number:02d}
+Sensor	SEN-{number:04d}
+Sensor reading	RDG-{sensor_id}-{sequence:04d}
+Inventory lot	LOT-{number:06d}
+Door event	DR-{number:08d}
+
+The reading and lot formats above describe the existing generated database.
+The configuration module also contains timestamp-based reading and year-prefixed
+lot helper formats; those helpers are not currently the formats emitted by the
+existing sensor-reading and inventory generators.
+Controlled negative fixtures
+docs/phase10/controlled_sensor_scenarios.csv and
+docs/phase10/controlled_business_edge_cases.csv contain isolated synthetic
+test cases. They are deliberately kept separate from the operational SQLite
+database. They cover overlapping sensor-zone assignments, reading gaps,
+sensor outages, occupancy threshold breaches, incompatible lot placement, and
+an alarm missing an affected-lot bridge link. Synthetic fixtures are not
+represented as observed production incidents.
+SQL seed export
+exports/warehouse_monitor_seed.sql.gz is a compressed SQL dump of the
+current SQLite database. It is generated from a read-only database connection.
+The database file remains the authoritative runnable local dataset.
+Reproducibility qualification
+The generators use fixed, documented seeds, but a full two-run regeneration
+and byte-for-byte comparison of the complete million-reading database has not
+been certified. Do not interpret a fixed seed or a baseline checksum as proof
+that a full independent rebuild was compared. The current database manifest
+records the existing generated dataset.
+AI-assisted development record
+The AI usage document contains a categorized reconstruction of the AI-assisted
+work and known prompt themes. It is not an exhaustive verbatim transcript of
+every prompt submitted to every AI tool. Any missing historical prompts must
+be recovered from the original chat/tool histories; they must not be invented.
+"""
+readme_path.write_text(readme.rstrip() + "\n", encoding="utf-8")
+
+# ---------------------------------------------------------
+# 5. AI disclosure qualification
+# ---------------------------------------------------------
+ai_path = ROOT / "docs" / "AI_USAGE_AND_PROMPT_HISTORY.md"
+ai_text = ai_path.read_text(encoding="utf-8") if ai_path.exists() else (
+"# AI Usage and Prompt History\n\n"
+)
+if "Historical prompt completeness" not in ai_text:
+ai_text += """
+Historical prompt completeness
+This document is a categorized reconstruction of the AI-assisted development
+work available during finalization. It is not a complete verbatim transcript
+of every prompt submitted to every AI tool, nor does it claim that every AI
+response is reproduced here. The original conversation/tool histories remain
+the authoritative source for exact historical prompts. Missing prompts have
+not been fabricated.
+
+AI assistance accelerated planning, implementation, debugging, documentation,
+and validation. The repository owner remains responsible for reviewing the
+result, understanding design decisions, running the application and tests,
+checking generated data, and explaining the remaining limitations.
+"""
+ai_path.parent.mkdir(parents=True, exist_ok=True)
+ai_path.write_text(ai_text.rstrip() + "\n", encoding="utf-8")
+
+# ---------------------------------------------------------
+# 6. Final audit report
+# ---------------------------------------------------------
+audit = {
+"generated_at_utc": NOW,
+"database": "data/warehouse_monitor.db",
+"database_sha256": sha256(DB),
+"database_size_bytes": DB.stat().st_size,
+"sqlite_integrity": integrity,
+"foreign_key_violations": 0,
+"table_counts": counts,
+"controlled_business_fixtures": 2,
+"controlled_business_fixture_file": "docs/phase10/controlled_business_edge_cases.csv",
+"sql_export": {
+"path": "exports/warehouse_monitor_seed.sql.gz",
+"size_bytes": sql_size,
+"sha256": sha256(sql_path),
+},
+"full_scale_two_run_reproducibility": "NOT_PERFORMED_NOT_CERTIFIED",
+"ai_prompt_history": "CATEGORIZED_RECONSTRUCTION_NOT_EXHAUSTIVE_VERBATIM",
+"source_database_modified": False,
+}
+write_json(DOCS / "final_fix_audit.json", audit)
+
+# ---------------------------------------------------------
+# 7. Existing tests and project validation
+# ---------------------------------------------------------
+print("\n========== PYTHON TESTS ==========")
+test_code, test_output = run([sys.executable, "-m", "pytest", "-q"], timeout=900)
+
+print("\n========== PHASE 10 VALIDATION ==========")
+validation_code, validation_output = run(
+[sys.executable, "-m", "scripts.validate_phase10"], timeout=900
+)
+
+print("\n========== PYTHON COMPILE CHECK ==========")
+compile_code, compile_output = run(
+[sys.executable, "-m", "compileall", "-q", "app", "scripts", "tests"],
+timeout=300
+)
+
+audit["pytest_exit_code"] = test_code
+audit["phase10_validation_exit_code"] = validation_code
+audit["compileall_exit_code"] = compile_code
+audit["pytest_passed"] = test_code == 0
+audit["phase10_validation_passed"] = validation_code == 0
+audit["compileall_passed"] = compile_code == 0
+write_json(DOCS / "final_fix_audit.json", audit)
+
+if test_code or validation_code or compile_code:
+print("\nFINALIZATION STOPPED: one or more validations failed.")
+print("No automatic commit or push was performed.")
+sys.exit(2)
+
+# ---------------------------------------------------------
+# 8. Git commit and push
+# ---------------------------------------------------------
+print("\n========== GIT FINALIZATION ==========")
+subprocess.run(["git", "add", "README.md"], cwd=ROOT, check=True)
+subprocess.run(["git", "add", "docs/AI_USAGE_AND_PROMPT_HISTORY.md"], cwd=ROOT, check=True)
+subprocess.run(["git", "add", "docs/phase10/controlled_business_edge_cases.csv"], cwd=ROOT, check=True)
+subprocess.run(["git", "add", "docs/phase10/controlled_business_edge_case_ground_truth.csv"], cwd=ROOT, check=True)
+subprocess.run(["git", "add", "docs/phase10/controlled_business_edge_case_manifest.json"], cwd=ROOT, check=True)
+subprocess.run(["git", "add", "docs/phase10/final_fix_audit.json"], cwd=ROOT, check=True)
+subprocess.run(["git", "add", "scripts/finalize_submission.py"], cwd=ROOT, check=True)
+
+# GitHub rejects individual files over 100 MB. Keep an oversized export
+# locally and report it rather than making the entire push fail.
+if sql_size < 90 * 1024 * 1024:
+subprocess.run(["git", "add", str(sql_path.relative_to(ROOT))], cwd=ROOT, check=True)
+print("SQL export is below 90 MB and will be committed.")
+else:
+print("WARNING: SQL export exceeds 90 MB; kept locally and not staged.")
+
+status = subprocess.run(
+["git", "status", "--short"], cwd=ROOT, text=True,
+stdout=subprocess.PIPE, check=True
+).stdout
+print(status or "No staged changes.")
+
+staged = subprocess.run(
+["git", "diff", "--cached", "--quiet"], cwd=ROOT
+).returncode != 0
+
+if staged:
+subprocess.run(
+["git", "commit", "-m", "Finalize challenge evidence and submission audit"],
+cwd=ROOT, check=True
+)
+push = subprocess.run(["git", "push", "origin", "main"], cwd=ROOT)
+if push.returncode:
+print("WARNING: Commit succeeded but push failed. Run: git push origin main")
+else:
+print("PASS: Changes pushed to origin/main.")
+else:
+print("No new Git changes to commit.")
+
+print("\n========== FINALIZATION SUMMARY ==========")
+print("Database preserved:", True)
+print("SQLite integrity:", integrity)
+print("Foreign-key violations:", 0)
+print("Pytest:", "PASS" if test_code == 0 else "FAIL")
+print("Phase 10 validation:", "PASS" if validation_code == 0 else "FAIL")
+print("Compile check:", "PASS" if compile_code == 0 else "FAIL")
+print("Full two-run reproducibility: NOT CERTIFIED")
+print("AI prompt history: NOT EXHAUSTIVE VERBATIM")
+print("Audit report: docs/phase10/final_fix_audit.json")
+print("SQL export:", sql_path.relative_to(ROOT))
+print("Final Git status:")
+subprocess.run(["git", "status", "-sb"], cwd=ROOT)
+
+if name == "main":
+main()
+
+
+================================================================================
+DATABASE SCHEMA AND EDGE CASE COUNTS
+
+TABLE: alarm_lots
+  alarm_id | TEXT | PK=1 | NOT_NULL=1
+  lot_id | TEXT | PK=2 | NOT_NULL=1
+  impact_type | TEXT | PK=0 | NOT_NULL=1
+  impact_start | TEXT | PK=3 | NOT_NULL=1
+  impact_end | TEXT | PK=0 | NOT_NULL=0
+  impact_details | TEXT | PK=0 | NOT_NULL=0
+  ROW COUNT: 628552
+
+TABLE: alarms
+  alarm_id | TEXT | PK=1 | NOT_NULL=0
+  warehouse_id | TEXT | PK=0 | NOT_NULL=1
+  zone_id | TEXT | PK=0 | NOT_NULL=1
+  sensor_id | TEXT | PK=0 | NOT_NULL=0
+  alarm_type | TEXT | PK=0 | NOT_NULL=1
+  severity | TEXT | PK=0 | NOT_NULL=1
+  detected_at | TEXT | PK=0 | NOT_NULL=1
+  description | TEXT | PK=0 | NOT_NULL=1
+  lifecycle_state | TEXT | PK=0 | NOT_NULL=1
+  resolved_at | TEXT | PK=0 | NOT_NULL=0
+  ROW COUNT: 6472
+
+TABLE: door_events
+  door_event_id | TEXT | PK=1 | NOT_NULL=0
+  zone_id | TEXT | PK=0 | NOT_NULL=1
+  door_identifier | TEXT | PK=0 | NOT_NULL=1
+  event_type | TEXT | PK=0 | NOT_NULL=1
+  event_timestamp | TEXT | PK=0 | NOT_NULL=1
+  duration_seconds | INTEGER | PK=0 | NOT_NULL=0
+  recorded_by | TEXT | PK=0 | NOT_NULL=1
+  ROW COUNT: 16398
+
+TABLE: inspections
+  inspection_id | TEXT | PK=1 | NOT_NULL=0
+  alarm_id | TEXT | PK=0 | NOT_NULL=1
+  inspector_name | TEXT | PK=0 | NOT_NULL=1
+  inspection_type | TEXT | PK=0 | NOT_NULL=1
+  inspection_status | TEXT | PK=0 | NOT_NULL=1
+  findings | TEXT | PK=0 | NOT_NULL=0
+  scheduled_at | TEXT | PK=0 | NOT_NULL=1
+  completed_at | TEXT | PK=0 | NOT_NULL=0
+  ROW COUNT: 6472
+
+TABLE: inventory_lots
+  lot_id | TEXT | PK=1 | NOT_NULL=0
+  product_type | TEXT | PK=0 | NOT_NULL=1
+  product_name | TEXT | PK=0 | NOT_NULL=1
+  quantity | INTEGER | PK=0 | NOT_NULL=1
+  unit_of_measure | TEXT | PK=0 | NOT_NULL=1
+  requirement_id | TEXT | PK=0 | NOT_NULL=1
+  received_at | TEXT | PK=0 | NOT_NULL=1
+  expiry_date | TEXT | PK=0 | NOT_NULL=0
+  lifecycle_state | TEXT | PK=0 | NOT_NULL=1
+  created_at | TEXT | PK=0 | NOT_NULL=1
+  ROW COUNT: 10000
+
+TABLE: lot_zone_assignments
+  assignment_id | INTEGER | PK=1 | NOT_NULL=0
+  lot_id | TEXT | PK=0 | NOT_NULL=1
+  zone_id | TEXT | PK=0 | NOT_NULL=1
+  assigned_at | TEXT | PK=0 | NOT_NULL=1
+  released_at | TEXT | PK=0 | NOT_NULL=0
+  assignment_reason | TEXT | PK=0 | NOT_NULL=0
+  created_at | TEXT | PK=0 | NOT_NULL=1
+  ROW COUNT: 10000
+
+TABLE: remediations
+  remediation_id | TEXT | PK=1 | NOT_NULL=0
+  inspection_id | TEXT | PK=0 | NOT_NULL=1
+  lot_id | TEXT | PK=0 | NOT_NULL=0
+  remediation_type | TEXT | PK=0 | NOT_NULL=1
+  action_description | TEXT | PK=0 | NOT_NULL=1
+  remediation_status | TEXT | PK=0 | NOT_NULL=1
+  assigned_to | TEXT | PK=0 | NOT_NULL=1
+  started_at | TEXT | PK=0 | NOT_NULL=0
+  completed_at | TEXT | PK=0 | NOT_NULL=0
+  inventory_impact | TEXT | PK=0 | NOT_NULL=0
+  ROW COUNT: 10
+
+TABLE: schema_metadata
+  version | INTEGER | PK=1 | NOT_NULL=0
+  description | TEXT | PK=0 | NOT_NULL=1
+  applied_at | TEXT | PK=0 | NOT_NULL=1
+  ROW COUNT: 1
+
+TABLE: sensor_outages
+  outage_id | TEXT | PK=1 | NOT_NULL=0
+  sensor_id | TEXT | PK=0 | NOT_NULL=1
+  outage_start | TEXT | PK=0 | NOT_NULL=1
+  outage_end | TEXT | PK=0 | NOT_NULL=0
+  detected_at | TEXT | PK=0 | NOT_NULL=1
+  outage_reason | TEXT | PK=0 | NOT_NULL=1
+  lifecycle_state | TEXT | PK=0 | NOT_NULL=1
+  ROW COUNT: 0
+
+TABLE: sensor_readings
+  reading_id | TEXT | PK=1 | NOT_NULL=0
+  sensor_id | TEXT | PK=0 | NOT_NULL=1
+  recorded_at | TEXT | PK=0 | NOT_NULL=1
+  temperature_c | REAL | PK=0 | NOT_NULL=0
+  humidity_pct | REAL | PK=0 | NOT_NULL=0
+  occupancy_count | INTEGER | PK=0 | NOT_NULL=0
+  battery_pct | REAL | PK=0 | NOT_NULL=0
+  signal_strength | REAL | PK=0 | NOT_NULL=0
+  received_at | TEXT | PK=0 | NOT_NULL=1
+  ROW COUNT: 1000000
+
+TABLE: sensor_zone_assignments
+  assignment_id | INTEGER | PK=1 | NOT_NULL=0
+  sensor_id | TEXT | PK=0 | NOT_NULL=1
+  zone_id | TEXT | PK=0 | NOT_NULL=1
+  effective_from | TEXT | PK=0 | NOT_NULL=1
+  effective_to | TEXT | PK=0 | NOT_NULL=0
+  assignment_reason | TEXT | PK=0 | NOT_NULL=0
+  created_at | TEXT | PK=0 | NOT_NULL=1
+  ROW COUNT: 500
+
+TABLE: sensors
+  sensor_id | TEXT | PK=1 | NOT_NULL=0
+  sensor_name | TEXT | PK=0 | NOT_NULL=1
+  sensor_type | TEXT | PK=0 | NOT_NULL=1
+  manufacturer | TEXT | PK=0 | NOT_NULL=0
+  installation_date | TEXT | PK=0 | NOT_NULL=1
+  calibration_due_date | TEXT | PK=0 | NOT_NULL=0
+  lifecycle_state | TEXT | PK=0 | NOT_NULL=1
+  created_at | TEXT | PK=0 | NOT_NULL=1
+  ROW COUNT: 500
+
+TABLE: storage_requirements
+  requirement_id | TEXT | PK=1 | NOT_NULL=0
+  product_type | TEXT | PK=0 | NOT_NULL=1
+  min_temperature_c | REAL | PK=0 | NOT_NULL=1
+  max_temperature_c | REAL | PK=0 | NOT_NULL=1
+  min_humidity_pct | REAL | PK=0 | NOT_NULL=1
+  max_humidity_pct | REAL | PK=0 | NOT_NULL=1
+  max_dwell_hours | REAL | PK=0 | NOT_NULL=1
+  effective_from | TEXT | PK=0 | NOT_NULL=1
+  effective_to | TEXT | PK=0 | NOT_NULL=0
+  requirement_version | INTEGER | PK=0 | NOT_NULL=1
+  created_at | TEXT | PK=0 | NOT_NULL=1
+  ROW COUNT: 5
+
+TABLE: warehouses
+  warehouse_id | TEXT | PK=1 | NOT_NULL=0
+  warehouse_name | TEXT | PK=0 | NOT_NULL=1
+  location | TEXT | PK=0 | NOT_NULL=1
+  capacity_sq_m | REAL | PK=0 | NOT_NULL=1
+  warehouse_type | TEXT | PK=0 | NOT_NULL=1
+  lifecycle_state | TEXT | PK=0 | NOT_NULL=1
+  created_at | TEXT | PK=0 | NOT_NULL=1
+  updated_at | TEXT | PK=0 | NOT_NULL=1
+  ROW COUNT: 10
+
+TABLE: zones
+  zone_id | TEXT | PK=1 | NOT_NULL=0
+  warehouse_id | TEXT | PK=0 | NOT_NULL=1
+  zone_name | TEXT | PK=0 | NOT_NULL=1
+  zone_type | TEXT | PK=0 | NOT_NULL=1
+  max_capacity | INTEGER | PK=0 | NOT_NULL=1
+  lifecycle_state | TEXT | PK=0 | NOT_NULL=1
+  created_at | TEXT | PK=0 | NOT_NULL=1
+  ROW COUNT: 100
+
+
+DATABASE INDEXES AND FOREIGN KEYS
+
+alarm_lots
+  FK: (0, 0, 'inventory_lots', 'lot_id', 'lot_id', 'NO ACTION', 'NO ACTION', 'NONE')
+  FK: (1, 0, 'alarms', 'alarm_id', 'alarm_id', 'NO ACTION', 'NO ACTION', 'NONE')
+
+alarms
+  FK: (0, 0, 'sensors', 'sensor_id', 'sensor_id', 'NO ACTION', 'NO ACTION', 'NONE')
+  FK: (1, 0, 'zones', 'zone_id', 'zone_id', 'NO ACTION', 'NO ACTION', 'NONE')
+  FK: (2, 0, 'warehouses', 'warehouse_id', 'warehouse_id', 'NO ACTION', 'NO ACTION', 'NONE')
+
+door_events
+  FK: (0, 0, 'zones', 'zone_id', 'zone_id', 'NO ACTION', 'NO ACTION', 'NONE')
+
+inspections
+  FK: (0, 0, 'alarms', 'alarm_id', 'alarm_id', 'NO ACTION', 'NO ACTION', 'NONE')
+
+inventory_lots
+  FK: (0, 0, 'storage_requirements', 'requirement_id', 'requirement_id', 'NO ACTION', 'NO ACTION', 'NONE')
+
+lot_zone_assignments
+  FK: (0, 0, 'zones', 'zone_id', 'zone_id', 'NO ACTION', 'NO ACTION', 'NONE')
+  FK: (1, 0, 'inventory_lots', 'lot_id', 'lot_id', 'NO ACTION', 'NO ACTION', 'NONE')
+
+remediations
+  FK: (0, 0, 'inventory_lots', 'lot_id', 'lot_id', 'NO ACTION', 'NO ACTION', 'NONE')
+  FK: (1, 0, 'inspections', 'inspection_id', 'inspection_id', 'NO ACTION', 'NO ACTION', 'NONE')
+
+schema_metadata
+
+sensor_outages
+  FK: (0, 0, 'sensors', 'sensor_id', 'sensor_id', 'NO ACTION', 'NO ACTION', 'NONE')
+
+sensor_readings
+  FK: (0, 0, 'sensors', 'sensor_id', 'sensor_id', 'NO ACTION', 'NO ACTION', 'NONE')
+
+sensor_zone_assignments
+  FK: (0, 0, 'zones', 'zone_id', 'zone_id', 'NO ACTION', 'NO ACTION', 'NONE')
+  FK: (1, 0, 'sensors', 'sensor_id', 'sensor_id', 'NO ACTION', 'NO ACTION', 'NONE')
+
+sensors
+
+storage_requirements
+
+warehouses
+
+zones
+  FK: (0, 0, 'warehouses', 'warehouse_id', 'warehouse_id', 'NO ACTION', 'NO ACTION', 'NONE')
+
+
+================================================================================
+README PROJECT STRUCTURE

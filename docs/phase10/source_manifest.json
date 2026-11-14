@@ -14,7 +14,7 @@
     "inspections": 6472,
     "inventory_lots": 10000,
     "lot_zone_assignments": 10000,
-    "remediations": 0,
+    "remediations": 10,
     "schema_metadata": 1,
     "sensor_outages": 0,
     "sensor_readings": 1000000,

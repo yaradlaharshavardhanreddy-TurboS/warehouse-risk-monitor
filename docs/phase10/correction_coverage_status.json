@@ -1,0 +1,19 @@
+{
+  "updated_at_utc": "2026-11-14T03:17:25.425629+00:00",
+  "coverage": {
+    "generator_seed_consistency": "REQUIRES_SOURCE_REVIEW_AND_TWO_RUN_TEST",
+    "deterministic_reproduction": "NOT_CERTIFIED",
+    "sensor_multiple_zone_edge_case": "CHECKED_IN_OPERATIONAL_DATABASE; CONTROLLED_FIXTURE_REQUIRES_REVIEW",
+    "sensor_outage": "CONTROLLED_FIXTURE_EXISTS; OPERATIONAL_TABLE_COUNT_REQUIRES_REVIEW",
+    "incompatible_inventory_assignment": "REQUIRES_BUSINESS_RULE_VALIDATION",
+    "alarm_affected_lot_coverage": "UNLINKED_ALARMS_REQUIRE_IMPACT_REVIEW",
+    "inspection_remediation_lifecycle": "STATUS_COUNTS_CAPTURED; TRANSITION_RULES_REQUIRE_REVIEW",
+    "ground_truth_labels": "REQUIRES_RULE_AND_EVIDENCE_REVIEW",
+    "readme_structure": "APPLICATION_ENTRY_POINT_REFERENCE_CHECKED",
+    "phase15_readiness": "REQUIRES_FRESH_VALIDATOR",
+    "full_challenge_coverage": "REQUIRES_FINAL_MANUAL_REVIEW",
+    "ai_prompt_history": "REQUIRES_VERBATIM_PROMPT_COMPLETENESS_REVIEW"
+  },
+  "database_integrity": "ok",
+  "foreign_key_violations": 0
+}

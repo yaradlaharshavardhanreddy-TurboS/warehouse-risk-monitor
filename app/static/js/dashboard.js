@@ -1,3 +1,4 @@
+
 "use strict";
 
 async function fetchApi(endpoint) {
@@ -26,9 +27,7 @@ async function fetchApi(endpoint) {
 function setMetric(elementId, value) {
     const element = document.getElementById(elementId);
 
-    if (!element) {
-        return;
-    }
+    if (!element) return;
 
     element.textContent =
         value === null || value === undefined ? "--" : value;
@@ -42,6 +41,12 @@ async function loadDashboard() {
     const loading = document.getElementById("dashboard-loading");
     const content = document.getElementById("dashboard-content");
     const error = document.getElementById("dashboard-error");
+
+    // This script may be loaded on pages other than the dashboard.
+    // Do not execute dashboard logic when its required elements are absent.
+    if (!loading || !content || !error) {
+        return;
+    }
 
     loading.classList.remove("hidden");
     content.classList.add("hidden");
@@ -58,66 +63,49 @@ async function loadDashboard() {
         const remediations = analytics.remediations || {};
         const trends = analytics.trends || {};
 
-        setMetric(
-            "total-warehouses",
-            warehouses.total_warehouses
-        );
+        setMetric("total-warehouses", warehouses.total_warehouses);
+        setMetric("total-alarms", alarms.total_alarms);
+        setMetric("affected-lots", inventory.unique_affected_lots);
+        setMetric("total-inventory", inventory.total_inventory_lots);
+        setMetric("total-inspections", inspections.total_inspections);
+        setMetric("total-remediations", remediations.total_remediations);
 
-        setMetric(
-            "total-alarms",
-            alarms.total_alarms
-        );
+        if (typeof renderLineChart === "function") {
+            renderLineChart(
+                "alarmTrendChart",
+                trends.daily_alarm_trends,
+                "Daily alarms"
+            );
+        }
 
-        setMetric(
-            "affected-lots",
-            inventory.unique_affected_lots
-        );
+        if (typeof renderDoughnutChart === "function") {
+            renderDoughnutChart(
+                "alarmDistributionChart",
+                alarms.by_severity,
+                "Alarms by severity"
+            );
 
-        setMetric(
-            "total-inventory",
-            inventory.total_inventory_lots
-        );
+            renderDoughnutChart(
+                "inspectionChart",
+                inspections.by_status,
+                "Inspection status"
+            );
 
-        setMetric(
-            "total-inspections",
-            inspections.total_inspections
-        );
-
-        setMetric(
-            "total-remediations",
-            remediations.total_remediations
-        );
-
-        renderLineChart(
-            "alarmTrendChart",
-            trends.daily_alarm_trends,
-            "Daily alarms"
-        );
-
-        renderDoughnutChart(
-            "alarmDistributionChart",
-            alarms.by_severity,
-            "Alarms by severity"
-        );
-
-        renderDoughnutChart(
-            "inspectionChart",
-            inspections.by_status,
-            "Inspection status"
-        );
-
-        renderDoughnutChart(
-            "remediationChart",
-            remediations.by_status,
-            "Remediation status"
-        );
+            renderDoughnutChart(
+                "remediationChart",
+                remediations.by_status,
+                "Remediation status"
+            );
+        }
 
         const reportInformation =
             document.getElementById("report-information");
 
-        reportInformation.textContent =
-            `${report.report_name || "Warehouse Analytics"} | ` +
-            `Generated: ${report.generated_at || "Not provided"}`;
+        if (reportInformation) {
+            reportInformation.textContent =
+                `${report.report_name || "Warehouse Analytics"} | ` +
+                `Generated: ${report.generated_at || "Not provided"}`;
+        }
 
         loading.classList.add("hidden");
         content.classList.remove("hidden");

@@ -45,7 +45,7 @@ def _clamp(value, lower, upper):
     return max(lower, min(upper, value))
 
 
-def _load_sensors(connection):
+def _load_sensors(connection, expected_sensors=None):
     """Load each sensor with its currently assigned zone characteristics."""
     rows = connection.execute(
         """
@@ -61,11 +61,10 @@ def _load_sensors(connection):
         """
     ).fetchall()
 
-    if len(rows) != 500:
-        raise RuntimeError(
-            f"Expected 500 active sensors with current zone assignments; "
-            f"found {len(rows)}. Check Phase 3 data before continuing."
-        )
+    if expected_sensors is not None and len(rows) != expected_sensors:
+        raise RuntimeError(f"Expected {expected_sensors} active sensors with current zone assignments; found {len(rows)}.")
+    if not rows:
+        raise RuntimeError("No active sensors with current zone assignments were found.")
 
     sensor_ids = [row[0] for row in rows]
     if len(set(sensor_ids)) != len(sensor_ids):
@@ -138,7 +137,7 @@ def _make_reading(sensor, index, rng):
     )
 
 
-def generate_sensor_readings(reading_count=DEFAULT_READING_COUNT, replace=False):
+def generate_sensor_readings(reading_count=DEFAULT_READING_COUNT, replace=False, expected_sensors=None):
     if reading_count < 1:
         raise ValueError("reading_count must be at least 1.")
 
@@ -157,7 +156,7 @@ def generate_sensor_readings(reading_count=DEFAULT_READING_COUNT, replace=False)
                 "Use --replace only if you intentionally want to regenerate it."
             )
 
-        sensors = _load_sensors(connection)
+        sensors = _load_sensors(connection, expected_sensors=expected_sensors)
 
         if replace:
             connection.execute("DELETE FROM sensor_readings")

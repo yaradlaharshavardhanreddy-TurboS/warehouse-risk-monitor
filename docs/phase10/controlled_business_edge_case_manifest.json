@@ -1,0 +1,7 @@
+{
+  "generated_at_utc": "2026-11-14T04:22:39.391931+00:00",
+  "scenario_origin": "CONTROLLED_SYNTHETIC",
+  "scenario_count": 2,
+  "source_database_modified": false,
+  "interpretation": "Synthetic negative fixtures for incompatible storage placement and missing alarm-to-lot bridge coverage. They are not source-database facts."
+}

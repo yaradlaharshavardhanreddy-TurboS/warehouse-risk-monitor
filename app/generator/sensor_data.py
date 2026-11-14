@@ -26,8 +26,8 @@ MANUFACTURERS = [
 ]
 
 
-def generate_sensors():
-    random.seed(SEED)
+def generate_sensors(expected_zones=None):
+    rng = random.Random(SEED)
 
     connection = sqlite3.connect(DATABASE_PATH)
     connection.execute("PRAGMA foreign_keys = ON")
@@ -39,10 +39,8 @@ def generate_sensors():
             "SELECT COUNT(*) FROM zones"
         ).fetchone()[0]
 
-        if zone_count != 100:
-            raise RuntimeError(
-                f"Expected 100 zones, found {zone_count}."
-            )
+        if expected_zones is not None and zone_count != expected_zones:
+            raise RuntimeError(f"Expected {expected_zones} zones, found {zone_count}.")
 
         existing = cursor.execute(
             "SELECT COUNT(*) FROM sensors"
@@ -57,7 +55,7 @@ def generate_sensors():
             "SELECT zone_id FROM zones ORDER BY zone_id"
         ).fetchall()
 
-        now = datetime.now()
+        now = datetime(2026, 1, 1, 0, 0, 0)
         sensor_records = []
         assignment_records = []
 
@@ -70,7 +68,7 @@ def generate_sensors():
                 sensor_id = f"SEN-{sensor_number:04d}"
 
                 installation_date = now - timedelta(
-                    days=random.randint(30, 365)
+                    days=rng.randint(30, 365)
                 )
 
                 calibration_due = installation_date + timedelta(
@@ -82,7 +80,7 @@ def generate_sensors():
                         sensor_id,
                         f"{sensor_type} Sensor {sensor_number:04d}",
                         sensor_type,
-                        random.choice(MANUFACTURERS),
+                        rng.choice(MANUFACTURERS),
                         installation_date.strftime("%Y-%m-%d %H:%M:%S"),
                         calibration_due.strftime("%Y-%m-%d %H:%M:%S"),
                         "ACTIVE",

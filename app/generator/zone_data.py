@@ -17,7 +17,7 @@ ZONE_TYPES = [
 ]
 
 
-def generate_zones():
+def generate_zones(expected_warehouses=None):
     connection = sqlite3.connect(DATABASE_PATH)
     connection.execute("PRAGMA foreign_keys = ON")
 
@@ -28,10 +28,8 @@ def generate_zones():
             "SELECT COUNT(*) FROM warehouses"
         ).fetchone()[0]
 
-        if warehouse_count != 10:
-            raise RuntimeError(
-                f"Expected 10 warehouses, found {warehouse_count}."
-            )
+        if expected_warehouses is not None and warehouse_count != expected_warehouses:
+            raise RuntimeError(f"Expected {expected_warehouses} warehouses, found {warehouse_count}.")
 
         existing = cursor.execute(
             "SELECT COUNT(*) FROM zones"
@@ -47,7 +45,7 @@ def generate_zones():
             "SELECT warehouse_id FROM warehouses ORDER BY warehouse_id"
         ).fetchall()
 
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now = "2026-01-01 00:00:00"
 
         zone_records = []
 

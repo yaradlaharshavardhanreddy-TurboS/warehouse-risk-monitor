@@ -1,82 +1,40 @@
-# AI Usage Disclosure and Prompt History
+# AI Usage Disclosure and Prompt-History Guidance
 
-## 1. Purpose
+## Disclosure
 
-This document discloses the use of large language models (LLMs) during development of the Warehouse Risk Monitor challenge submission.
+LLM-based assistance was used during development for challenge decomposition, architecture and data-model discussion, code drafting/review, debugging suggestions, test and validator design, and documentation. The developer remains responsible for reviewing the source, executing the project, understanding its behavior, and validating the submission.
 
-AI tools were used as development assistants. They were not treated as substitutes for executing the application, reviewing the repository, or validating results.
+## Representative categories of assistance
 
-## 2. Areas Where AI Assisted
-
-The AI-assisted workflow covered these categories:
-
-1. Understanding and decomposing the warehouse-monitoring challenge.
-2. Planning implementation phases and dependencies.
-3. Designing synthetic data generation and relational data workflows.
-4. Developing and reviewing database validation logic.
-5. Designing anomaly, alarm and inventory traceability checks.
-6. Preparing automated validation and test commands.
-7. Diagnosing test failures and interpreting command output.
-8. Improving documentation and submission readiness.
-
-## 3. Representative Prompt History
-
-The following are representative prompt topics from the development workflow. They are categorized summaries, not a claim that they reproduce every original prompt verbatim.
-
-| Area | Representative prompt / request | AI contribution |
+| Work area | Representative request category | How assistance was used |
 |---|---|---|
-| Project planning | Break the warehouse risk monitoring challenge into implementation phases. | Helped structure the work into manageable phases. |
-| Database | Implement and validate the warehouse relational database and its entity relationships. | Assisted with schema and integrity review. |
-| Synthetic data | Generate the required warehouse, zone, sensor, reading and inventory volumes with a fixed seed. | Assisted with generation logic and validation planning. |
-| Edge cases | Add labelled incompatible-zone, sensor-assignment, reading-gap and alarm-link exceptions. | Assisted with exception design and checks. |
-| Traceability | Build links between alarms, affected inventory lots, inspections and remediation. | Assisted with relationship and reconciliation logic. |
-| Testing | Run the test suite and investigate validation failures. | Helped interpret output and propose fixes. |
-| Reproducibility | Verify repeated generation with the same seed. | Assisted with reproducibility checks. |
-| Submission | Review README and submission compliance against the challenge guidelines. | Assisted with documentation and acceptance-check planning. |
+| Planning | Decompose the warehouse monitoring challenge into deliverables and implementation phases. | Organizing dependencies and acceptance criteria. |
+| Database | Review schema relationships, constraints and data integrity. | Discussing relational design and audit queries. |
+| Generation | Create repeatable synthetic warehouse, sensor, event and inventory data. | Drafting generator logic and seed strategy. |
+| Detection | Implement environmental and operational anomaly detection. | Reviewing rule logic and edge cases. |
+| Traceability | Link alarms to exposed lots and subsequent inspections/remediation. | Designing association checks and reporting. |
+| Validation | Diagnose failures and design comprehensive checks. | Interpreting command output and proposing tests. |
+| Submission | Improve project documentation and final readiness evidence. | Drafting documentation and checklists. |
 
-## 4. Where AI Accelerated Development
+These are categorized summaries, not verbatim quotations of every prompt.
 
-AI assistance helped accelerate:
-- Breaking a broad challenge into smaller implementation phases.
-- Drafting and reviewing Python validation scripts.
-- Identifying missing relationships and edge cases.
-- Interpreting test and audit output.
-- Preparing documentation structures.
-- Creating repeatable command sequences.
+## Prompt-history integrity
 
-## 5. Where AI Assistance Was Significant
+This document is a transparent summary of the AI-assisted workflow, not an exhaustive transcript. It must not be presented as a complete or verbatim prompt history. Where a submission evaluator requires exact prompts, export the relevant original ChatGPT conversation(s) from the account's data export and attach the unedited export or the requested conversation excerpts. Do not reconstruct missing messages from memory, invent prompt text, or imply that a categorized summary is a raw transcript.
 
-LLM assistance was significant in planning, code drafting, debugging suggestions, validation design and documentation preparation.
+## Human review and accountability
 
-The final implementation must be judged using the actual repository, executable commands, database state, test results and generated evidence.
+The developer must independently:
 
-## 6. Developer Review and Responsibility
+- Run the application and commands in the target environment.
+- Review and understand all accepted code changes.
+- Verify generated database records, outputs and anomaly evidence.
+- Run tests, database integrity checks and both scale profiles.
+- Review the final Git diff and submission package.
+- Disclose remaining failures or limitations rather than claiming unverified success.
 
-The developer is responsible for:
-- Running commands in the local project environment.
-- Reviewing changes before accepting them.
-- Inspecting generated files and database records.
-- Running automated tests and validation scripts.
-- Checking data relationships and exception outputs.
-- Confirming that documentation matches actual implementation.
-- Reviewing the public repository before submission.
+AI-generated code or suggestions are not evidence of correctness until executed and checked.
 
-AI-generated suggestions are not considered verified merely because they were generated.
+## Evidence to retain
 
-## 7. Verification Evidence
-
-The following evidence should be retained with the submission:
-
-- Test execution output.
-- Database integrity and foreign-key validation.
-- Dataset row counts.
-- Reproducibility checksums.
-- Ground-truth and anomaly reports.
-- Submission-readiness and final acceptance reports.
-- Relevant Git commit history.
-
-## 8. Transparency Note
-
-This document is a categorized reconstruction of the AI-assisted workflow, not an exhaustive verbatim export of every conversation or prompt.
-
-If a complete verbatim prompt transcript is required, the original conversation history should be exported and attached separately. No fabricated prompts or unverified claims of manual authorship are presented here.
+Retain the exact commands, test output, database integrity and business-rule reports, starter/full execution report, per-table reproducibility hashes, ground-truth artifacts, and relevant commit history. A report certifies only the tests and profiles it actually ran.

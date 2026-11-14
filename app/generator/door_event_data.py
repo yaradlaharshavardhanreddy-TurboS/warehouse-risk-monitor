@@ -18,7 +18,7 @@ SIMULATION_START = datetime(2026, 10, 22, 0, 0, 0)
 SIMULATION_DAYS = 7
 
 
-def _load_zones(connection):
+def _load_zones(connection, expected_zones=None):
     rows = connection.execute(
         """
         SELECT zone_id, zone_type
@@ -28,14 +28,14 @@ def _load_zones(connection):
         """
     ).fetchall()
 
-    if len(rows) != 100:
-        raise RuntimeError(
-            f"Expected 100 active zones; found {len(rows)}."
-        )
+    if expected_zones is not None and len(rows) != expected_zones:
+        raise RuntimeError(f"Expected {expected_zones} active zones; found {len(rows)}.")
+    if not rows:
+        raise RuntimeError("No active zones found.")
     return rows
 
 
-def generate_door_events(replace=False):
+def generate_door_events(replace=False, expected_zones=None):
     rng = random.Random(SEED)
     connection = sqlite3.connect(DATABASE_PATH)
     connection.execute("PRAGMA foreign_keys = ON")
@@ -51,7 +51,7 @@ def generate_door_events(replace=False):
                 "Use --replace only if you intentionally want to regenerate it."
             )
 
-        zones = _load_zones(connection)
+        zones = _load_zones(connection, expected_zones=expected_zones)
         if replace:
             connection.execute("DELETE FROM door_events")
 

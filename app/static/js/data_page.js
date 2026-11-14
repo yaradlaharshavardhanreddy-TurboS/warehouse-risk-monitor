@@ -1,3 +1,4 @@
+
 "use strict";
 
 /* =========================================
@@ -26,7 +27,7 @@ function formatLabel(value) {
 }
 
 function formatNumber(value) {
-    if (typeof value === "number") {
+    if (typeof value === "number" && Number.isFinite(value)) {
         return value.toLocaleString("en-IN");
     }
 
@@ -50,6 +51,11 @@ function isNumeric(value) {
 
 function renderSummary(data) {
     const container = document.getElementById("page-summary");
+
+    if (!container) {
+        return;
+    }
+
     container.innerHTML = "";
 
     if (!isPlainObject(data)) {
@@ -155,13 +161,9 @@ function renderTable(data, title) {
         columns.forEach((column, index) => {
             const cell = document.createElement("td");
 
-            let value;
-
-            if (Array.isArray(item)) {
-                value = item[index];
-            } else {
-                value = item[column];
-            }
+            const value = Array.isArray(item)
+                ? item[index]
+                : item[column];
 
             if (value === null || value === undefined) {
                 cell.textContent = "—";
@@ -255,13 +257,13 @@ function renderObject(data, title, container) {
     );
 
     if (Object.keys(scalarValues).length > 0 && title !== "analytics") {
-        const metrics = renderMetricSection(scalarValues, title);
-        container.appendChild(metrics);
+        container.appendChild(
+            renderMetricSection(scalarValues, title)
+        );
     }
 
     arrays.forEach(([key, value]) => {
-        const table = renderTable(value, key);
-        container.appendChild(table);
+        container.appendChild(renderTable(value, key));
     });
 
     nestedObjects.forEach(([key, value]) => {
@@ -289,49 +291,72 @@ function renderPageData(data) {
     const empty = document.getElementById("page-empty");
     const reportInfo = document.getElementById("page-report-info");
 
-    summary.innerHTML = "";
-    sections.innerHTML = "";
-    if (reportInfo) reportInfo.innerHTML = "";
-    empty.classList.add("hidden");
+    // Reset only elements that actually exist.
+    if (summary) summary.innerHTML = "";
+    if (sections) sections.innerHTML = "";
+    if (reportInfo) reportInfo.textContent = "";
+    if (empty) empty.classList.add("hidden");
 
     if (!isPlainObject(data)) {
         throw new Error("The API returned an unexpected data format.");
     }
 
-    // Consolidated analytics report
+    if (!sections && !summary) {
+        throw new Error(
+            "Page rendering containers are missing from the HTML template."
+        );
+    }
+
+    /* Consolidated analytics report */
     if (isPlainObject(data.analytics)) {
         const analytics = data.analytics;
 
         renderSummary({
-            ...analytics.warehouses,
-            ...analytics.alarms,
-            ...analytics.inventory,
-            ...analytics.inspections,
-            ...analytics.remediations
+            ...(analytics.warehouses || {}),
+            ...(analytics.alarms || {}),
+            ...(analytics.inventory || {}),
+            ...(analytics.inspections || {}),
+            ...(analytics.remediations || {})
         });
 
-        Object.entries(analytics).forEach(([key, value]) => {
-            const group = document.createElement("div");
-            group.className = "analytics-group";
+        if (sections) {
+            Object.entries(analytics).forEach(([key, value]) => {
+                const group = document.createElement("div");
+                group.className = "analytics-group";
 
-            const heading = document.createElement("h2");
-            heading.className = "analytics-group-title";
-            heading.textContent = formatLabel(key);
+                const heading = document.createElement("h2");
+                heading.className = "analytics-group-title";
+                heading.textContent = formatLabel(key);
 
-            group.appendChild(heading);
-            renderObject(value, key, group);
+                group.appendChild(heading);
+                renderObject(value, key, group);
 
-            sections.appendChild(group);
-        });
+                sections.appendChild(group);
+            });
+        }
 
-        reportInfo.textContent =
-            `${data.report_name || "Warehouse Analytics"} | ` +
-            `Generated: ${data.generated_at || "Not provided"}`;
+        // This was the original line 327 failure.
+        // Analytics can render even when report-info is absent.
+        if (reportInfo) {
+            reportInfo.textContent =
+                `${data.report_name || "Warehouse Analytics"} | ` +
+                `Generated: ${data.generated_at || "Not provided"}`;
+        }
+
+        if (
+            empty &&
+            sections &&
+            !sections.children.length &&
+            summary &&
+            !summary.children.length
+        ) {
+            empty.classList.remove("hidden");
+        }
 
         return;
     }
 
-    // Individual analytics pages
+    /* Individual analytics pages */
     renderSummary(data);
 
     const scalarValues = Object.fromEntries(
@@ -340,33 +365,38 @@ function renderPageData(data) {
         )
     );
 
-    if (Object.keys(scalarValues).length > 0) {
-        const metrics = renderMetricSection(
-            scalarValues,
-            "Overview"
+    if (sections && Object.keys(scalarValues).length > 0) {
+        sections.appendChild(
+            renderMetricSection(scalarValues, "Overview")
         );
-
-        sections.appendChild(metrics);
     }
 
-    Object.entries(data).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-            sections.appendChild(renderTable(value, key));
-        } else if (isPlainObject(value)) {
-            const group = document.createElement("div");
-            group.className = "analytics-group";
+    if (sections) {
+        Object.entries(data).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+                sections.appendChild(renderTable(value, key));
+            } else if (isPlainObject(value)) {
+                const group = document.createElement("div");
+                group.className = "analytics-group";
 
-            const heading = document.createElement("h2");
-            heading.className = "analytics-group-title";
-            heading.textContent = formatLabel(key);
+                const heading = document.createElement("h2");
+                heading.className = "analytics-group-title";
+                heading.textContent = formatLabel(key);
 
-            group.appendChild(heading);
-            renderObject(value, key, group);
-            sections.appendChild(group);
-        }
-    });
+                group.appendChild(heading);
+                renderObject(value, key, group);
+                sections.appendChild(group);
+            }
+        });
+    }
 
-    if (!sections.children.length && !summary.children.length) {
+    if (
+        empty &&
+        sections &&
+        summary &&
+        !sections.children.length &&
+        !summary.children.length
+    ) {
         empty.classList.remove("hidden");
     }
 }
@@ -380,9 +410,17 @@ async function loadPageData() {
     const content = document.getElementById("page-content");
     const error = document.getElementById("page-error");
 
+    if (!loading || !content || !error) {
+        console.warn(
+            "Page data initialization skipped: required page elements are missing."
+        );
+        return;
+    }
+
     loading.classList.remove("hidden");
     content.classList.add("hidden");
     error.classList.add("hidden");
+    error.textContent = "";
 
     try {
         const endpoint = getPageApiEndpoint();
@@ -416,7 +454,8 @@ async function loadPageData() {
     } catch (exception) {
         loading.classList.add("hidden");
         error.classList.remove("hidden");
-        error.textContent = exception.message;
+        error.textContent =
+            exception.message || "An unexpected page loading error occurred.";
 
         console.error("Page data loading error:", exception);
     }

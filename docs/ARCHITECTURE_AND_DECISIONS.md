@@ -1,48 +1,66 @@
-# Architecture, Assumptions and Engineering Decisions
+# Architecture and Engineering Decisions
 
-## Architecture
+## Layered workflow
 
-The project follows a relational data-processing workflow:
+```text
+Profile configuration + fixed seeds
+               |
+               v
+Master data: warehouses -> zones -> sensors + assignments
+               |
+               v
+Dependent synthetic events: readings + door events
+               |
+               v
+Storage requirements + inventory lots + lot-zone assignments
+               |
+               v
+Environmental detector + operational detector
+               |
+               v
+Alarms -> alarm/lot impact links -> inspections -> remediations
+               |
+               v
+Flask routes / dashboard / analytics / health checks
+               |
+               v
+Ground truth + validators + reproducibility reports
+```
 
-1. Master data creation.
-2. Dependent event generation.
-3. Inventory and storage requirement association.
-4. Risk-rule evaluation.
-5. Alarm creation.
-6. Inspection and remediation workflows.
-7. Inventory-impact traceability.
-8. Validation and reporting.
+## Components
 
-## Core Decisions
+- `app/database/schema.sql` defines the relational contract, foreign keys, uniqueness constraints, checks and indexes.
+- `app/generator/` creates deterministic warehouse, zone, sensor, reading, inventory and door-event data. Generator functions accept profile counts where profile scaling is required.
+- `app/services/environmental_risk_detector.py` evaluates sensor measurements against effective storage requirements and calculates affected inventory from zone/time overlap.
+- `app/services/operational_risk_detector.py` evaluates door activity, occupancy and sensor reading gaps/outages.
+- `app/services/alarm_lifecycle_manager.py`, `inspection_manager.py` and `remediation_manager.py` manage operational state transitions and traceability.
+- `app/routes/`, `app/templates/` and `app/static/` provide the Flask user interface and API surface.
+- `scripts/` contains data dictionary, ground-truth, validation and profile-execution tooling.
 
-| Decision | Reason |
+## Key data relationships
+
+- A warehouse owns zones.
+- Sensors are associated with zones through effective-dated `sensor_zone_assignments`; historical assignments are retained.
+- Sensor readings reference sensors and are ordered by event time.
+- Inventory lots reference storage requirements and are placed through effective-dated `lot_zone_assignments`.
+- Alarms reference warehouse, zone and optionally sensor; `alarm_lots` is the many-to-many impact bridge.
+- Inspections reference alarms; remediations reference inspections and optionally inventory lots.
+
+## Engineering decisions
+
+| Decision | Rationale / consequence |
 |---|---|
-| Relational database | Supports explicit relationships and referential integrity. |
-| Synthetic data | Enables controlled scenarios without relying on confidential operational data. |
-| Fixed seed | Supports reproducible generation. |
-| Deterministic identifiers | Makes joins and audit trails easier to verify. |
-| Separate ground truth | Avoids leaking expected anomaly labels into operational input features. |
-| Explicit event records | Preserves operational history and traceability. |
-| Validation scripts | Makes data quality and acceptance evidence repeatable. |
+| SQLite | Portable local persistence with integrity checks; not a distributed production database. |
+| Fixed random seeds | Makes random sequences repeatable; timestamps and IDs must also be stable for byte-level comparison. |
+| Stable IDs | Supports joins and deterministic output comparison. |
+| Effective-dated assignments | Preserves sensor/lot movement history and enables time-aware impact analysis. |
+| Separate ground truth | Reduces label leakage into operational input features. |
+| Detector dry-run mode | Allows analysis without persisting alarms during isolated validation. |
+| Temporary profile databases | Prevents starter/full test execution from damaging the operational project database. |
 
-## Assumptions
+## Assumptions and limitations
 
-- Warehouse and zone identifiers are stable.
-- Sensor readings are timestamped.
-- Storage requirements are evaluated against inventory and storage context.
-- Affected inventory is determined from relevant time and zone overlap.
-- Missing readings and incomplete associations must be visible exceptions.
-- Risk thresholds must be documented and consistently applied.
-
-## Trade-offs
-
-- SQLite simplifies local execution but is not a substitute for a distributed production database.
-- Synthetic data improves repeatability but cannot represent every real warehouse operating condition.
-- Rule-based detection is explainable but may require tuning for real industrial environments.
-- Full-scale generation and validation can require significant local execution time.
-
-## Limitations
-
-This challenge implementation does not claim certified industrial control, safety-critical operation, or live OT integration.
-
-Actual implementation details should be verified against source code and database schema.
+- Product-to-zone compatibility is a challenge business rule documented by the inventory generator mapping.
+- Environmental impact requires matching zone and time overlap; an alarm without an impact link is not automatically proof that inventory was affected.
+- A synthetic negative fixture is labelled as synthetic and is never silently inserted into the operational database.
+- The rules are explainable examples, not validated industrial thresholds. No live OT/PLC integration, safety certification or production deployment guarantee is claimed.

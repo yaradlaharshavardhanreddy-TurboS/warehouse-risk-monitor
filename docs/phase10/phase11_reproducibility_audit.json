@@ -1,188 +1,84 @@
 {
-  "phase": "11",
-  "audit": "centralized_seed_and_reproducibility_checks",
-  "generated_at_utc": "2026-11-13T16:08:50.645256+00:00",
+  "audit_timestamp_utc": "2026-11-14T03:17:25.424392+00:00",
   "master_seed": 20261022,
-  "generator_seeds": {
-    "warehouses": 20261022,
-    "zones": 20261022,
-    "sensors": 20261022,
-    "sensor_readings": 20261022,
-    "inventory_lots": 20261022,
-    "door_events": 20261023,
-    "alarms": 20261022,
-    "inspections": 20261022
+  "database_integrity": "ok",
+  "foreign_key_violation_count": 0,
+  "database_table_row_counts": {
+    "alarm_lots": 628552,
+    "alarms": 6472,
+    "door_events": 16398,
+    "inspections": 6472,
+    "inventory_lots": 10000,
+    "lot_zone_assignments": 10000,
+    "remediations": 10,
+    "schema_metadata": 1,
+    "sensor_outages": 0,
+    "sensor_readings": 1000000,
+    "sensor_zone_assignments": 500,
+    "sensors": 500,
+    "storage_requirements": 5,
+    "warehouses": 10,
+    "zones": 100
   },
-  "scale_profiles": {
-    "starter": {
-      "warehouses": 2,
-      "zones": 20,
-      "sensors": 100,
-      "sensor_readings": 20000,
-      "inventory_lots": 500
-    },
-    "full": {
-      "warehouses": 10,
-      "zones": 100,
-      "sensors": 500,
-      "sensor_readings": 1000000,
-      "inventory_lots": 10000
-    }
-  },
-  "checks": [
+  "generator_seed_source_audit": [
     {
-      "check": "Master seed configured",
-      "passed": true,
-      "detail": ""
+      "file": "app\\generator\\door_event_data.py",
+      "seed_references": [
+        "get_generator_seed('door_events'"
+      ],
+      "uses_random_module": true,
+      "uses_numpy": false
     },
     {
-      "check": "Generator seed configuration exists",
-      "passed": true,
-      "detail": ""
+      "file": "app\\generator\\inventory_data.py",
+      "seed_references": [
+        "get_generator_seed('inventory_lots'"
+      ],
+      "uses_random_module": true,
+      "uses_numpy": false
     },
     {
-      "check": "Scale profiles configured",
-      "passed": true,
-      "detail": ""
+      "file": "app\\generator\\master_data.py",
+      "seed_references": [],
+      "uses_random_module": false,
+      "uses_numpy": false
     },
     {
-      "check": "Seed accessible: warehouses",
-      "passed": true,
-      "detail": "Seed = 20261022"
+      "file": "app\\generator\\requirement_data.py",
+      "seed_references": [],
+      "uses_random_module": false,
+      "uses_numpy": false
     },
     {
-      "check": "Seed accessible: zones",
-      "passed": true,
-      "detail": "Seed = 20261022"
+      "file": "app\\generator\\sensor_data.py",
+      "seed_references": [
+        "get_generator_seed('sensors'"
+      ],
+      "uses_random_module": true,
+      "uses_numpy": false
     },
     {
-      "check": "Seed accessible: sensors",
-      "passed": true,
-      "detail": "Seed = 20261022"
+      "file": "app\\generator\\sensor_reading_data.py",
+      "seed_references": [
+        "get_generator_seed('sensor_readings'"
+      ],
+      "uses_random_module": true,
+      "uses_numpy": false
     },
     {
-      "check": "Seed accessible: sensor_readings",
-      "passed": true,
-      "detail": "Seed = 20261022"
+      "file": "app\\generator\\zone_data.py",
+      "seed_references": [],
+      "uses_random_module": false,
+      "uses_numpy": false
     },
     {
-      "check": "Seed accessible: inventory_lots",
-      "passed": true,
-      "detail": "Seed = 20261022"
-    },
-    {
-      "check": "Seed accessible: door_events",
-      "passed": true,
-      "detail": "Seed = 20261023"
-    },
-    {
-      "check": "Seed accessible: alarms",
-      "passed": true,
-      "detail": "Seed = 20261022"
-    },
-    {
-      "check": "Seed accessible: inspections",
-      "passed": true,
-      "detail": "Seed = 20261022"
-    },
-    {
-      "check": "Centralized seed integration: app/generator/door_event_data.py",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Centralized seed integration: app/generator/inventory_data.py",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Centralized seed integration: app/generator/sensor_data.py",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Centralized seed integration: app/generator/sensor_reading_data.py",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Deterministic RNG: warehouses",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Deterministic RNG: zones",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Deterministic RNG: sensors",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Deterministic RNG: sensor_readings",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Deterministic RNG: inventory_lots",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Deterministic RNG: door_events",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Deterministic RNG: alarms",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Deterministic RNG: inspections",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Valid scale profile: starter",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Valid scale profile: full",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Python compilation",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Full test suite",
-      "passed": true,
-      "detail": ""
-    },
-    {
-      "check": "Existing database integrity",
-      "passed": true,
-      "detail": "ok"
-    },
-    {
-      "check": "Existing database foreign keys",
-      "passed": true,
-      "detail": "Violations: 0"
-    },
-    {
-      "check": "Existing database has tables",
-      "passed": true,
-      "detail": "Tables: 16"
+      "file": "app\\generator\\__init__.py",
+      "seed_references": [],
+      "uses_random_module": false,
+      "uses_numpy": false
     }
   ],
-  "passed": 30,
-  "failed": 0,
-  "full_database_two_run_comparison": "NOT_PERFORMED",
-  "certification": "NOT_CERTIFIED"
+  "full_database_two_run_comparison": "NOT_PERFORMED_BY_THIS_AUDIT",
+  "certification": "NOT_CERTIFIED",
+  "note": "This report does not claim deterministic full-scale reproduction. Two independent full database generations and checksum comparisons must be performed before certification."
 }

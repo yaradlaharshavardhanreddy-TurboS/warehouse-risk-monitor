@@ -1,0 +1,3 @@
+scenario_id,issue_type,entity_type,entity_id,related_entity_id,label_status,scenario_origin,evidence
+SYN-BIZ-001,INCOMPATIBLE_LOT_ZONE_ASSIGNMENT,INVENTORY_LOT,SYN-LOT-000001,SYN-ZONE-FREEZER-001,CONFIRMED_SYNTHETIC,CONTROLLED_SYNTHETIC,"Fixture assigns a DAIRY lot to a FREEZER zone; the documented mapping requires DAIRY -> COLD. This is an isolated negative test fixture, not an operational database row."
+SYN-BIZ-002,ALARM_MISSING_AFFECTED_LOT_LINK,ALARM,SYN-ALARM-000001,SYN-LOT-000002,CONFIRMED_SYNTHETIC,CONTROLLED_SYNTHETIC,"Fixture models an environmental alarm with an affected lot but deliberately omits the alarm_lots bridge record. This is an isolated negative test fixture, not an operational database row."
