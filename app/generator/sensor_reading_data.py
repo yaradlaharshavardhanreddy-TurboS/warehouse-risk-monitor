@@ -16,8 +16,9 @@ import sqlite3
 from datetime import datetime, timedelta
 
 from app.database.database import DATABASE_PATH
+from scripts.phase10_generation_config import get_generator_seed
 
-SEED = 20261022
+SEED = get_generator_seed('sensor_readings')
 DEFAULT_READING_COUNT = 1_000_000
 READING_INTERVAL_MINUTES = 5
 SIMULATION_START = datetime(2026, 10, 22, 0, 0, 0)

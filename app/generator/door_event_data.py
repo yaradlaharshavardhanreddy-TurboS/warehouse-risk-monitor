@@ -11,8 +11,9 @@ import sqlite3
 from datetime import datetime, timedelta
 
 from app.database.database import DATABASE_PATH
+from scripts.phase10_generation_config import get_generator_seed
 
-SEED = 20261023
+SEED = get_generator_seed('door_events')
 SIMULATION_START = datetime(2026, 10, 22, 0, 0, 0)
 SIMULATION_DAYS = 7
 

@@ -6,9 +6,9 @@ import sqlite3
 from datetime import datetime, timedelta
 
 from app.database.database import DATABASE_PATH
+from scripts.phase10_generation_config import get_generator_seed
 
-SEED = 20261022
-
+SEED = get_generator_seed('sensors')
 SENSOR_TYPES = [
     "TEMP",
     "TEMP",
