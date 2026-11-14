@@ -59,4 +59,4 @@ The checker prints the elapsed time for each generation step for both runs.
 
 ## Total elapsed time
 
-50.05 seconds
+62.17 seconds

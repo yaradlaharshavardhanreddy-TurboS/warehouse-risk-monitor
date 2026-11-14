@@ -40,3 +40,11 @@ backups/
 *.db-shm
 scripts/finalize_submission.py
 exports/warehouse_monitor_seed.sql
+
+# Timestamped temporary database and schema backups
+data/*.backup_*
+data/*.before_*
+data/*.inspection_backup_*
+data/*.lifecycle_repair_*
+docs/phase10/*.before_schema_update_*
+scripts/*.before_schema_update_*

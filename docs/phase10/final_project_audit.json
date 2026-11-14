@@ -1,0 +1,271 @@
+{
+  "project": "warehouse-risk-monitor",
+  "generated_at_utc": "2026-11-14T05:43:11.210136+00:00",
+  "overall_result": "NOT READY - FAILURES FOUND",
+  "summary": {
+    "PASS": 42,
+    "FAIL": 1,
+    "REVIEW": 4,
+    "NOT VERIFIABLE": 1
+  },
+  "checks": [
+    {
+      "check": "Required project structure",
+      "status": "PASS",
+      "detail": "Missing: none"
+    },
+    {
+      "check": "Python compilation",
+      "status": "PASS",
+      "detail": "exit_code=0"
+    },
+    {
+      "check": "Complete pytest suite",
+      "status": "PASS",
+      "detail": "exit_code=0"
+    },
+    {
+      "check": "JavaScript syntax: dashboard.js",
+      "status": "PASS",
+      "detail": "exit_code=0"
+    },
+    {
+      "check": "JavaScript syntax: data_page.js",
+      "status": "PASS",
+      "detail": "exit_code=0"
+    },
+    {
+      "check": "JavaScript syntax: charts.js",
+      "status": "PASS",
+      "detail": "exit_code=0"
+    },
+    {
+      "check": "SQLite integrity",
+      "status": "PASS",
+      "detail": "ok"
+    },
+    {
+      "check": "SQLite foreign-key integrity",
+      "status": "PASS",
+      "detail": "violations=0"
+    },
+    {
+      "check": "Required application tables",
+      "status": "PASS",
+      "detail": "Missing: none"
+    },
+    {
+      "check": "Alarm-to-affected-lot traceability",
+      "status": "PASS",
+      "detail": "alarms=6472, linked_alarms=6331, links=628552"
+    },
+    {
+      "check": "Inventory data population",
+      "status": "PASS",
+      "detail": "inventory_lots=10000"
+    },
+    {
+      "check": "inspections population",
+      "status": "PASS",
+      "detail": "rows=6472"
+    },
+    {
+      "check": "remediations population",
+      "status": "PASS",
+      "detail": "rows=10"
+    },
+    {
+      "check": "Sensor outage data",
+      "status": "FAIL",
+      "detail": "tables=['sensor_outages'], rows=0"
+    },
+    {
+      "check": "Deployment archive matches local database",
+      "status": "PASS",
+      "detail": "SHA-256 comparison"
+    },
+    {
+      "check": "Generator seed consistency review",
+      "status": "REVIEW",
+      "detail": "detected seeds=no simple numeric assignments; inspect derived seeds and RNG usage"
+    },
+    {
+      "check": "Sensor-to-zone assignment",
+      "status": "PASS",
+      "detail": "Source keyword evidence: zone_id, sensor_id"
+    },
+    {
+      "check": "Sensor outage implementation",
+      "status": "PASS",
+      "detail": "Source keyword evidence: outage"
+    },
+    {
+      "check": "Incompatible inventory assignment",
+      "status": "PASS",
+      "detail": "Source keyword evidence: compatibility, product_type"
+    },
+    {
+      "check": "Alarm-to-lot traceability implementation",
+      "status": "PASS",
+      "detail": "Source keyword evidence: alarm_lots, inventory_lots"
+    },
+    {
+      "check": "Inspection lifecycle implementation",
+      "status": "PASS",
+      "detail": "Source keyword evidence: inspection, completed, scheduled"
+    },
+    {
+      "check": "Remediation lifecycle implementation",
+      "status": "PASS",
+      "detail": "Source keyword evidence: remediation, planned, completed"
+    },
+    {
+      "check": "Ground-truth or anomaly labeling",
+      "status": "REVIEW",
+      "detail": "Source keyword evidence: not detected"
+    },
+    {
+      "check": "Sensor drift implementation",
+      "status": "PASS",
+      "detail": "Source keyword evidence: drift, calibration"
+    },
+    {
+      "check": "Occupancy implementation",
+      "status": "PASS",
+      "detail": "Source keyword evidence: occupancy, capacity"
+    },
+    {
+      "check": "Profile tooling: run_profiles.py",
+      "status": "PASS",
+      "detail": "present"
+    },
+    {
+      "check": "Profile tooling: phase10_generation_config.py",
+      "status": "PASS",
+      "detail": "present"
+    },
+    {
+      "check": "Multiple generation profiles declared",
+      "status": "REVIEW",
+      "detail": "detected profile labels=[]"
+    },
+    {
+      "check": "Validation implementation",
+      "status": "PASS",
+      "detail": "app\\services\\phase5_validation.py"
+    },
+    {
+      "check": "Dedicated reproducibility/profile tests",
+      "status": "REVIEW",
+      "detail": "No clearly named dedicated test files found"
+    },
+    {
+      "check": "README: Project overview",
+      "status": "PASS",
+      "detail": "matching terms=overview, warehouse"
+    },
+    {
+      "check": "README: Installation and setup",
+      "status": "PASS",
+      "detail": "matching terms=install"
+    },
+    {
+      "check": "README: Execution instructions",
+      "status": "PASS",
+      "detail": "matching terms=run, execution"
+    },
+    {
+      "check": "README: Data generation profiles",
+      "status": "PASS",
+      "detail": "matching terms=profile"
+    },
+    {
+      "check": "README: Deterministic generation",
+      "status": "PASS",
+      "detail": "matching terms=seed, reproduc"
+    },
+    {
+      "check": "README: Validation and testing",
+      "status": "PASS",
+      "detail": "matching terms=validation, test"
+    },
+    {
+      "check": "README: Architecture or project structure",
+      "status": "PASS",
+      "detail": "matching terms=architecture"
+    },
+    {
+      "check": "README: Limitations or synthetic-data disclosure",
+      "status": "PASS",
+      "detail": "matching terms=synthetic"
+    },
+    {
+      "check": "Data dictionary",
+      "status": "PASS",
+      "detail": "matching documentation file found"
+    },
+    {
+      "check": "Ground-truth documentation",
+      "status": "PASS",
+      "detail": "matching documentation file found"
+    },
+    {
+      "check": "Reproducibility documentation",
+      "status": "PASS",
+      "detail": "matching documentation file found"
+    },
+    {
+      "check": "Challenge coverage report",
+      "status": "PASS",
+      "detail": "matching documentation file found"
+    },
+    {
+      "check": "Existing Phase 15 readiness report",
+      "status": "PASS",
+      "detail": "Valid JSON"
+    },
+    {
+      "check": "All eight Vercel-mode APIs",
+      "status": "PASS",
+      "detail": "all HTTP 200"
+    },
+    {
+      "check": "Git branch",
+      "status": "PASS",
+      "detail": "main"
+    },
+    {
+      "check": "Git working tree",
+      "status": "PASS",
+      "detail": "clean"
+    },
+    {
+      "check": "Git upstream tracking",
+      "status": "PASS",
+      "detail": "origin/main; ahead/behind=0\t0"
+    },
+    {
+      "check": "Live Vercel deployment verification",
+      "status": "NOT VERIFIABLE",
+      "detail": "No VERCEL_URL supplied; local Vercel-mode tests are not a live deployment test."
+    }
+  ],
+  "database_counts": {
+    "alarm_lots": 628552,
+    "alarms": 6472,
+    "door_events": 16398,
+    "inspections": 6472,
+    "inventory_lots": 10000,
+    "lot_zone_assignments": 10000,
+    "remediations": 10,
+    "schema_metadata": 1,
+    "sensor_outages": 0,
+    "sensor_readings": 1000000,
+    "sensor_zone_assignments": 500,
+    "sensors": 500,
+    "storage_requirements": 5,
+    "warehouses": 10,
+    "zones": 100
+  },
+  "detected_generator_seeds": []
+}

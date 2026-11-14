@@ -18,9 +18,9 @@
       "detail": "0 violations"
     },
     {
-      "check": "Required relational tables",
+      "check": "Required relational and lifecycle tables",
       "passed": true,
-      "detail": "15 tables; missing []"
+      "detail": "19 tables; missing []"
     },
     {
       "check": "full profile count: warehouses",
@@ -100,12 +100,12 @@
     {
       "check": "Inspection workflow records exist",
       "passed": true,
-      "detail": "6,472 inspections"
+      "detail": "427 inspections"
     },
     {
       "check": "Remediation workflow records exist",
       "passed": true,
-      "detail": "10 remediations"
+      "detail": "256 remediations"
     },
     {
       "check": "README overview",
@@ -163,9 +163,39 @@
       "detail": ""
     },
     {
-      "check": "Source-derived ground truth schema/evidence is valid",
+      "check": "Ground-truth CSV contains required classification and identity columns",
       "passed": true,
-      "detail": "0 source-derived candidates; empty is permitted when no qualifying source anomaly exists"
+      "detail": "Missing: []"
+    },
+    {
+      "check": "Ground-truth rows use supported label statuses",
+      "passed": true,
+      "detail": "0 unsupported rows"
+    },
+    {
+      "check": "Injected ground truth has entity_id and ground_truth_id",
+      "passed": true,
+      "detail": "1604 injected rows"
+    },
+    {
+      "check": "Injected ground-truth entity_id values are unique",
+      "passed": false,
+      "detail": "1604 rows"
+    },
+    {
+      "check": "Injected ground_truth_id values are unique",
+      "passed": true,
+      "detail": "1604 rows"
+    },
+    {
+      "check": "All four injected anomaly types have at least 10 cases",
+      "passed": true,
+      "detail": "ALARM_LOT_LINK_DELETED=1469; LOT_WRONG_TYPE_ZONE=15; SENSOR_MISSING_READINGS=105; SENSOR_OVERLAPPING_ZONE=15"
+    },
+    {
+      "check": "Detector-derived REVIEW_REQUIRED rows contain source evidence",
+      "passed": true,
+      "detail": "0 detector-derived rows"
     },
     {
       "check": "Controlled sensor ground truth contains evidence-backed synthetic labels",
@@ -183,7 +213,7 @@
       "detail": "starter=PASS; full=PASS"
     }
   ],
-  "passed": 36,
-  "failed": 0,
-  "success": true
+  "passed": 41,
+  "failed": 1,
+  "success": false
 }
