@@ -37,43 +37,19 @@ The checker prints the elapsed time for each generation step for both runs.
 
 | Table | Result | Rows A | Rows B | Differing columns |
 |---|---:|---:|---:|---|
-| `warehouses` | **FAIL** | 10 | 10 | created_at, updated_at |
+| `warehouses` | **PASS** | 10 | 10 | — |
 | `storage_requirements` | **PASS** | 5 | 5 | — |
-| `zones` | **FAIL** | 100 | 100 | created_at |
+| `zones` | **PASS** | 100 | 100 | — |
 | `inventory_lots` | **PASS** | 10000 | 10000 | — |
 | `lot_zone_assignments` | **PASS** | 10000 | 10000 | — |
-| `sensors` | **FAIL** | 500 | 500 | installation_date, calibration_due_date, created_at |
-| `sensor_zone_assignments` | **FAIL** | 500 | 500 | effective_from, created_at |
+| `sensors` | **PASS** | 500 | 500 | — |
+| `sensor_zone_assignments` | **PASS** | 500 | 500 | — |
 | `sensor_readings` | **PASS** | 1000000 | 1000000 | — |
 | `door_events` | **PASS** | 16398 | 16398 | — |
 
-### `warehouses` details
-
-- Run A SHA256: `64fbbfa8a2d5f9d9da86104cd70514c32955afb6adb87c67f4722071fd397c3e`
-- Run B SHA256: `14807a3713f5b6cc1c50d1775f3f35acb8285dc2132ebd16738cf53152ff047c`
-- Differing columns: created_at, updated_at
-
-### `zones` details
-
-- Run A SHA256: `26916f956753a2130638ef08d2dc09306881396b4c847e9eabbb65fde3c8061e`
-- Run B SHA256: `4c386b0989c61b8f9a47160fd1494c313c03943a887d23d6ba864c1444092b82`
-- Differing columns: created_at
-
-### `sensors` details
-
-- Run A SHA256: `8005c950c8c2bc36b0fea92fba2d773bfdbf96e44ab7f0e4ee51322329da7a16`
-- Run B SHA256: `af432e0b5e355ca44b15cc985197843cedfeb14f9823e42e6ca8efbb1ee5557a`
-- Differing columns: installation_date, calibration_due_date, created_at
-
-### `sensor_zone_assignments` details
-
-- Run A SHA256: `de70df2d2e5fc00989cdca45fcc7d29fc53c2052551f686b7c741228c4edcfb1`
-- Run B SHA256: `8b8d11798003d28a91a75591e5a5a46b07cb13403a64d8df3b2f666d7c1f07d3`
-- Differing columns: effective_from, created_at
-
 ## Overall result
 
-**FAIL**
+**PASS**
 
 - Run A and Run B must match for every listed table.
 - Run A must match the real database for every listed table.
@@ -83,121 +59,4 @@ The checker prints the elapsed time for each generation step for both runs.
 
 ## Total elapsed time
 
-53.59 seconds
-
-
-## Read-only Stage A column comparison
-
-- Comparison date: 2026-11-14T14:56:08.006273+05:30
-- Real database: opened read-only
-- Fresh database: isolated temporary Stage A generation
-- Data changes: none
-- Normalization or repair: none
-
-### `warehouses`
-
-- Primary key: `warehouse_id`
-- Row counts: real `10`, fresh `10`
-#### `created_at`
-- Differing rows: **10**
-- Classification: **constant offset (-317 days, 10:59:45)**
-- Examples (`key` | real value | fresh value):
-  - `('WH-001',)` | `'2026-11-13 13:00:15'` | `'2026-01-01 00:00:00'`
-  - `('WH-002',)` | `'2026-11-13 13:00:15'` | `'2026-01-01 00:00:00'`
-  - `('WH-003',)` | `'2026-11-13 13:00:15'` | `'2026-01-01 00:00:00'`
-
-#### `updated_at`
-- Differing rows: **10**
-- Classification: **constant offset (-317 days, 10:59:45)**
-- Examples (`key` | real value | fresh value):
-  - `('WH-001',)` | `'2026-11-13 13:00:15'` | `'2026-01-01 00:00:00'`
-  - `('WH-002',)` | `'2026-11-13 13:00:15'` | `'2026-01-01 00:00:00'`
-  - `('WH-003',)` | `'2026-11-13 13:00:15'` | `'2026-01-01 00:00:00'`
-
-### `zones`
-
-- Primary key: `zone_id`
-- Row counts: real `100`, fresh `100`
-#### `created_at`
-- Differing rows: **100**
-- Classification: **constant offset (-317 days, 10:58:16)**
-- Examples (`key` | real value | fresh value):
-  - `('ZN-001-01',)` | `'2026-11-13 13:01:44'` | `'2026-01-01 00:00:00'`
-  - `('ZN-001-02',)` | `'2026-11-13 13:01:44'` | `'2026-01-01 00:00:00'`
-  - `('ZN-001-03',)` | `'2026-11-13 13:01:44'` | `'2026-01-01 00:00:00'`
-
-### `sensors`
-
-- Primary key: `sensor_id`
-- Row counts: real `500`, fresh `500`
-#### `installation_date`
-- Differing rows: **500**
-- Classification: **constant offset (-317 days, 10:53:55)**
-- Examples (`key` | real value | fresh value):
-  - `('SEN-0001',)` | `'2026-04-17 13:06:05'` | `'2025-06-05 00:00:00'`
-  - `('SEN-0002',)` | `'2026-05-23 13:06:05'` | `'2025-07-11 00:00:00'`
-  - `('SEN-0003',)` | `'2026-09-20 13:06:05'` | `'2025-11-08 00:00:00'`
-
-#### `calibration_due_date`
-- Differing rows: **500**
-- Classification: **constant offset (-317 days, 10:53:55)**
-- Examples (`key` | real value | fresh value):
-  - `('SEN-0001',)` | `'2026-10-14 13:06:05'` | `'2025-12-02 00:00:00'`
-  - `('SEN-0002',)` | `'2026-11-19 13:06:05'` | `'2026-01-07 00:00:00'`
-  - `('SEN-0003',)` | `'2027-03-19 13:06:05'` | `'2026-05-07 00:00:00'`
-
-#### `created_at`
-- Differing rows: **500**
-- Classification: **constant offset (-317 days, 10:53:55)**
-- Examples (`key` | real value | fresh value):
-  - `('SEN-0001',)` | `'2026-04-17 13:06:05'` | `'2025-06-05 00:00:00'`
-  - `('SEN-0002',)` | `'2026-05-23 13:06:05'` | `'2025-07-11 00:00:00'`
-  - `('SEN-0003',)` | `'2026-09-20 13:06:05'` | `'2025-11-08 00:00:00'`
-
-### `sensor_zone_assignments`
-
-- Primary key: `assignment_id`
-- Row counts: real `500`, fresh `500`
-#### `effective_from`
-- Differing rows: **500**
-- Classification: **constant offset (-317 days, 10:53:55)**
-- Examples (`key` | real value | fresh value):
-  - `(1,)` | `'2026-04-17 13:06:05'` | `'2025-06-05 00:00:00'`
-  - `(10,)` | `'2026-07-30 13:06:05'` | `'2025-09-17 00:00:00'`
-  - `(100,)` | `'2026-05-11 13:06:05'` | `'2025-06-29 00:00:00'`
-
-#### `created_at`
-- Differing rows: **500**
-- Classification: **constant offset (-317 days, 10:53:55)**
-- Examples (`key` | real value | fresh value):
-  - `(1,)` | `'2026-04-17 13:06:05'` | `'2025-06-05 00:00:00'`
-  - `(10,)` | `'2026-07-30 13:06:05'` | `'2025-09-17 00:00:00'`
-  - `(100,)` | `'2026-05-11 13:06:05'` | `'2025-06-29 00:00:00'`
-
-## Downstream logic source-reference scan
-
-This is a static source-code reference scan, not a runtime trace.
-A listed reference indicates that a relevant Python file mentions one or more target tables or differing column names; it does not by itself prove that the column is read at runtime.
-
-### Alarm logic
-- app\services\environmental_risk_detector.py: tables=['zones', 'sensor_zone_assignments'], columns=['effective_from']
-- app\services\operational_risk_detector.py: tables=['zones', 'sensor_zone_assignments'], columns=['effective_from']
-- scripts\diagnose_alarm_lots.py: tables=['zones'], columns=['effective_from']
-- scripts\preview_alarm_lots.py: tables=[], columns=['effective_from']
-
-### Inspection logic
-- No matching source references found.
-
-### Remediation logic
-- scripts\generate_remediations.py: tables=[], columns=['created_at']
-
-### Injection logic
-- scripts\inject_anomalies.py: tables=['warehouses', 'zones', 'sensors', 'sensor_zone_assignments'], columns=['created_at', 'effective_from']
-
-## Comparison conclusion
-
-- Total differing cell values across the inspected columns: **2620**
-- No real database rows were updated.
-- No generator, application, or checker files were modified.
-- The temporary fresh database was discarded after comparison.
-- Only this report was updated.
+50.05 seconds
