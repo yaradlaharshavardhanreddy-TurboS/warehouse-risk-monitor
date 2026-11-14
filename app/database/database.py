@@ -1,6 +1,7 @@
 """Database initialization and Vercel-aware database loading."""
 
 import gzip
+import hashlib
 import os
 import shutil
 import sqlite3
@@ -54,9 +55,22 @@ def _prepare_vercel_database():
     runtime_dir.mkdir(parents=True, exist_ok=True)
 
     destination = runtime_dir / "warehouse_monitor.db"
+    version_file = runtime_dir / "warehouse_monitor.db.sha256"
 
-    if _valid_database(destination):
-        return destination
+    # Identify the exact packaged database for this deployment.
+    archive_hash = hashlib.sha256()
+    with archive.open("rb") as archive_file:
+        for chunk in iter(lambda: archive_file.read(1024 * 1024), b""):
+            archive_hash.update(chunk)
+    expected_hash = archive_hash.hexdigest()
+
+    # Reuse the runtime database only when it matches this archive.
+    if _valid_database(destination) and version_file.is_file():
+        try:
+            if version_file.read_text(encoding="ascii").strip() == expected_hash:
+                return destination
+        except OSError:
+            pass
 
     temporary_path = None
 
@@ -79,10 +93,7 @@ def _prepare_vercel_database():
                 "Extracted deployment database failed SQLite integrity check."
             )
 
-        # Replace an invalid old copy only after the new copy is validated.
-        if destination.exists():
-            destination.unlink()
-
+        # Atomically replace the runtime copy only after validation.
         os.replace(temporary_path, destination)
         temporary_path = None
 
@@ -90,6 +101,10 @@ def _prepare_vercel_database():
             raise RuntimeError(
                 "Final runtime database failed SQLite integrity check."
             )
+
+        # Record which archive produced this runtime database.
+        # If writing this marker fails, the next initialization safely refreshes it.
+        version_file.write_text(expected_hash + "\\n", encoding="ascii")
 
         return destination
 
