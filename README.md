@@ -21,7 +21,7 @@ The system supports four operational actors:
 
 Application: [Warehouse Risk Monitor — Live Demo](https://warehouse-risk-monitor-gp11.vercel.app)
 
-Link: https://warehouse-risk-monitor-gp11.vercel.app
+Live Link: https://warehouse-risk-monitor-gp11.vercel.app
 
 The hosted deployment provides a read-only viewer of the warehouse monitoring data and dashboard.
 
