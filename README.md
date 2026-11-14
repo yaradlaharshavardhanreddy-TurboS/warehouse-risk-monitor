@@ -51,7 +51,7 @@ The hosted deployment provides a read-only viewer of the warehouse monitoring da
 |Database schema|[`app/database/schema.sql`](app/database/schema.sql)|SQLite schema, constraints, and indexes|
 |Database connection|[`app/database/database.py`](app/database/database.py)|Database access and loading|
 |Synthetic data generators|[`app/generator/`](app/generator/)|Warehouse, zone, sensor, reading, inventory, requirement, and door-event generation|
-|Clean operational database|`data/warehouse_monitor.db`|Baseline database, supplied separately|
+|Clean operational database|[`data/warehouse_monitor.db.gz`](data/warehouse_monitor.db.gz)|Compressed clean baseline SQLite database|
 |Anomaly injection script|[`scripts/inject\_anomalies.py`](scripts/inject_anomalies.py)|Creates injected anomaly scenarios and ground truth|
 |CSV export script|[`scripts/export\_data.py`](scripts/export_data.py)|Exports database tables to CSV|
 |Ground truth|[`docs/phase10/ground\_truth.csv`](docs/phase10/ground_truth.csv)|Injected anomaly records and detector-derived evidence|
