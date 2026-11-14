@@ -1,8 +1,179 @@
 {
   "project": "Warehouse Risk Monitoring System",
   "database": "warehouse_monitor.db",
-  "generated_at_utc": "2026-11-14T04:22:40.302681+00:00",
+  "generated_at_utc": "2026-11-14T11:52:55.111215+00:00",
+  "source_mode": "read-only",
   "tables": [
+    {
+      "table_name": "alarm_history",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "history_id",
+          "data_type": "INTEGER",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "identifier (integer)",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Generated INTEGER PRIMARY KEY AUTOINCREMENT; unique row identifier."
+        },
+        {
+          "name": "alarm_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "alarms",
+            "referenced_column": "alarm_id"
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required; foreign key to alarms.alarm_id."
+        },
+        {
+          "name": "from_state",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [
+            "OPEN",
+            "ACKNOWLEDGED",
+            "RESOLVED",
+            "CLOSED"
+          ],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Optional; when present must be one of the four CHECK-enforced alarm states."
+        },
+        {
+          "name": "to_state",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [
+            "OPEN",
+            "ACKNOWLEDGED",
+            "RESOLVED",
+            "CLOSED"
+          ],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required; CHECK-enforced alarm lifecycle state."
+        },
+        {
+          "name": "changed_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "timestamp (TEXT)",
+          "unique": "No",
+          "validation_rule": "Required timestamp text; SQLite does not enforce a timestamp format."
+        },
+        {
+          "name": "reason",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required explanatory text."
+        },
+        {
+          "name": "severity",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "Observed values only; no CHECK constraint on this column.",
+          "observed_values": [
+            "CRITICAL",
+            "HIGH",
+            "LOW",
+            "MEDIUM"
+          ],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required text; no column-level CHECK constraint in this table."
+        },
+        {
+          "name": "age_minutes",
+          "data_type": "REAL",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "minutes",
+          "unique": "No",
+          "validation_rule": "Required REAL value; no CHECK constraint in this table."
+        },
+        {
+          "name": "rule_version",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required rule/version identifier text."
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "alarm_id",
+          "referenced_table": "alarms",
+          "referenced_column": "alarm_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_alarm_history_alarm",
+          "unique": false,
+          "columns": [
+            "alarm_id",
+            "history_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE alarm_history (\n            history_id INTEGER PRIMARY KEY AUTOINCREMENT,\n            alarm_id TEXT NOT NULL,\n            from_state TEXT,\n            to_state TEXT NOT NULL,\n            changed_at TEXT NOT NULL,\n            reason TEXT NOT NULL,\n            severity TEXT NOT NULL,\n            age_minutes REAL NOT NULL,\n            rule_version TEXT NOT NULL,\n            FOREIGN KEY (alarm_id) REFERENCES alarms(alarm_id),\n            CHECK (to_state IN (\n                'OPEN', 'ACKNOWLEDGED', 'RESOLVED', 'CLOSED'\n            )),\n            CHECK (from_state IS NULL OR from_state IN (\n                'OPEN', 'ACKNOWLEDGED', 'RESOLVED', 'CLOSED'\n            ))\n        )"
+    },
     {
       "table_name": "alarm_lots",
       "description": "Description requires business confirmation.",
@@ -16,7 +187,13 @@
           "foreign_key": {
             "referenced_table": "alarms",
             "referenced_column": "alarm_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (part of composite primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique. Foreign key references alarms.alarm_id."
         },
         {
           "name": "lot_id",
@@ -27,7 +204,13 @@
           "foreign_key": {
             "referenced_table": "inventory_lots",
             "referenced_column": "lot_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (part of composite primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 2; unique. Foreign key references inventory_lots.lot_id."
         },
         {
           "name": "impact_type",
@@ -35,7 +218,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "impact_start",
@@ -43,7 +232,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 3,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (part of composite primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 3; unique."
         },
         {
           "name": "impact_end",
@@ -51,7 +246,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "impact_details",
@@ -59,7 +260,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         }
       ],
       "foreign_keys": [
@@ -105,10 +312,16 @@
         {
           "name": "alarm_id",
           "data_type": "TEXT",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "warehouse_id",
@@ -119,7 +332,13 @@
           "foreign_key": {
             "referenced_table": "warehouses",
             "referenced_column": "warehouse_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Foreign key references warehouses.warehouse_id."
         },
         {
           "name": "zone_id",
@@ -130,7 +349,13 @@
           "foreign_key": {
             "referenced_table": "zones",
             "referenced_column": "zone_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Foreign key references zones.zone_id."
         },
         {
           "name": "sensor_id",
@@ -141,7 +366,13 @@
           "foreign_key": {
             "referenced_table": "sensors",
             "referenced_column": "sensor_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Foreign key references sensors.sensor_id."
         },
         {
           "name": "alarm_type",
@@ -149,7 +380,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "severity",
@@ -157,7 +394,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "detected_at",
@@ -165,7 +408,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "description",
@@ -173,7 +422,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "lifecycle_state",
@@ -181,7 +436,13 @@
           "not_null": true,
           "default_value": "'OPEN'",
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "resolved_at",
@@ -189,7 +450,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         }
       ],
       "foreign_keys": [
@@ -249,10 +516,16 @@
         {
           "name": "door_event_id",
           "data_type": "TEXT",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "zone_id",
@@ -263,7 +536,13 @@
           "foreign_key": {
             "referenced_table": "zones",
             "referenced_column": "zone_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Foreign key references zones.zone_id."
         },
         {
           "name": "door_identifier",
@@ -271,7 +550,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "event_type",
@@ -279,7 +564,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "event_timestamp",
@@ -287,7 +578,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "duration_seconds",
@@ -295,7 +592,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "recorded_by",
@@ -303,7 +606,13 @@
           "not_null": true,
           "default_value": "'SYSTEM'",
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         }
       ],
       "foreign_keys": [
@@ -335,16 +644,164 @@
       "table_constraints_sql": "CREATE TABLE door_events (\n    door_event_id TEXT PRIMARY KEY,\n    zone_id TEXT NOT NULL,\n    door_identifier TEXT NOT NULL,\n    event_type TEXT NOT NULL\n        CHECK (event_type IN (\n            'OPENED',\n            'CLOSED',\n            'HELD_OPEN',\n            'FORCED_OPEN'\n        )),\n    event_timestamp TEXT NOT NULL,\n    duration_seconds INTEGER,\n    recorded_by TEXT NOT NULL DEFAULT 'SYSTEM',\n\n    FOREIGN KEY (zone_id)\n        REFERENCES zones(zone_id),\n\n    CHECK (\n        duration_seconds IS NULL OR duration_seconds >= 0\n    )\n)"
     },
     {
+      "table_name": "inspection_history",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "inspection_history_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required TEXT PRIMARY KEY; unique identifier."
+        },
+        {
+          "name": "inspection_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "inspections",
+            "referenced_column": "inspection_id"
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required; foreign key to inspections.inspection_id."
+        },
+        {
+          "name": "from_status",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "Observed values only; no status CHECK constraint on this table.",
+          "observed_values": [
+            "IN_PROGRESS",
+            "SCHEDULED"
+          ],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Optional status text; no SQLite CHECK constraint."
+        },
+        {
+          "name": "to_status",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "Observed values only; no status CHECK constraint on this table.",
+          "observed_values": [
+            "CANCELLED",
+            "COMPLETED",
+            "IN_PROGRESS",
+            "SCHEDULED"
+          ],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required status text; no SQLite CHECK constraint."
+        },
+        {
+          "name": "changed_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "timestamp (TEXT)",
+          "unique": "No",
+          "validation_rule": "Required timestamp text; SQLite does not enforce a timestamp format."
+        },
+        {
+          "name": "reason",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required explanatory text."
+        },
+        {
+          "name": "rule_version",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required rule/version identifier text."
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "inspection_id",
+          "referenced_table": "inspections",
+          "referenced_column": "inspection_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_inspection_history_inspection",
+          "unique": false,
+          "columns": [
+            "inspection_id",
+            "changed_at"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_inspection_history_1",
+          "unique": true,
+          "columns": [
+            "inspection_history_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE inspection_history (\n            inspection_history_id TEXT PRIMARY KEY,\n            inspection_id TEXT NOT NULL,\n            from_status TEXT,\n            to_status TEXT NOT NULL,\n            changed_at TEXT NOT NULL,\n            reason TEXT NOT NULL,\n            rule_version TEXT NOT NULL,\n            FOREIGN KEY (inspection_id)\n                REFERENCES inspections(inspection_id)\n        )"
+    },
+    {
       "table_name": "inspections",
       "description": "Description requires business confirmation.",
       "columns": [
         {
           "name": "inspection_id",
           "data_type": "TEXT",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "alarm_id",
@@ -355,7 +812,13 @@
           "foreign_key": {
             "referenced_table": "alarms",
             "referenced_column": "alarm_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Foreign key references alarms.alarm_id."
         },
         {
           "name": "inspector_name",
@@ -363,7 +826,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "inspection_type",
@@ -371,7 +840,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "inspection_status",
@@ -379,7 +854,13 @@
           "not_null": true,
           "default_value": "'SCHEDULED'",
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "findings",
@@ -387,7 +868,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "scheduled_at",
@@ -395,7 +882,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "completed_at",
@@ -403,7 +896,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         }
       ],
       "foreign_keys": [
@@ -440,10 +939,16 @@
         {
           "name": "lot_id",
           "data_type": "TEXT",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "product_type",
@@ -451,7 +956,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "product_name",
@@ -459,7 +970,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "quantity",
@@ -467,7 +984,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "unit_of_measure",
@@ -475,7 +998,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "requirement_id",
@@ -486,7 +1015,13 @@
           "foreign_key": {
             "referenced_table": "storage_requirements",
             "referenced_column": "requirement_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Foreign key references storage_requirements.requirement_id."
         },
         {
           "name": "received_at",
@@ -494,7 +1029,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "expiry_date",
@@ -502,7 +1043,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "lifecycle_state",
@@ -510,7 +1057,13 @@
           "not_null": true,
           "default_value": "'RECEIVED'",
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "created_at",
@@ -518,7 +1071,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         }
       ],
       "foreign_keys": [
@@ -548,10 +1107,16 @@
         {
           "name": "assignment_id",
           "data_type": "INTEGER",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "lot_id",
@@ -562,7 +1127,13 @@
           "foreign_key": {
             "referenced_table": "inventory_lots",
             "referenced_column": "lot_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Foreign key references inventory_lots.lot_id."
         },
         {
           "name": "zone_id",
@@ -573,7 +1144,13 @@
           "foreign_key": {
             "referenced_table": "zones",
             "referenced_column": "zone_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Foreign key references zones.zone_id."
         },
         {
           "name": "assigned_at",
@@ -581,7 +1158,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "released_at",
@@ -589,7 +1172,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "assignment_reason",
@@ -597,7 +1186,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "created_at",
@@ -605,7 +1200,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         }
       ],
       "foreign_keys": [
@@ -646,16 +1247,252 @@
       "table_constraints_sql": "CREATE TABLE lot_zone_assignments (\n    assignment_id INTEGER PRIMARY KEY AUTOINCREMENT,\n    lot_id TEXT NOT NULL,\n    zone_id TEXT NOT NULL,\n    assigned_at TEXT NOT NULL,\n    released_at TEXT,\n    assignment_reason TEXT,\n    created_at TEXT NOT NULL,\n\n    FOREIGN KEY (lot_id)\n        REFERENCES inventory_lots(lot_id),\n\n    FOREIGN KEY (zone_id)\n        REFERENCES zones(zone_id),\n\n    CHECK (\n        released_at IS NULL OR released_at > assigned_at\n    )\n)"
     },
     {
+      "table_name": "remediation_history",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "history_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required TEXT PRIMARY KEY; unique identifier."
+        },
+        {
+          "name": "remediation_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "remediations",
+            "referenced_column": "remediation_id"
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required; foreign key to remediations.remediation_id."
+        },
+        {
+          "name": "from_status",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "Observed values only; no status CHECK constraint on this table.",
+          "observed_values": [
+            "IN_PROGRESS",
+            "PLANNED"
+          ],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Optional status text; no SQLite CHECK constraint."
+        },
+        {
+          "name": "to_status",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "Observed values only; no status CHECK constraint on this table.",
+          "observed_values": [
+            "CANCELLED",
+            "COMPLETED",
+            "FAILED",
+            "IN_PROGRESS",
+            "PLANNED"
+          ],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required status text; no SQLite CHECK constraint."
+        },
+        {
+          "name": "changed_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "timestamp (TEXT)",
+          "unique": "No",
+          "validation_rule": "Required timestamp text; SQLite does not enforce a timestamp format."
+        },
+        {
+          "name": "reason",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required explanatory text."
+        },
+        {
+          "name": "rule_version",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required rule/version identifier text."
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "remediation_id",
+          "referenced_table": "remediations",
+          "referenced_column": "remediation_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_remediation_history_remediation",
+          "unique": false,
+          "columns": [
+            "remediation_id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_remediation_history_1",
+          "unique": true,
+          "columns": [
+            "history_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE remediation_history (\n            history_id TEXT PRIMARY KEY,\n            remediation_id TEXT NOT NULL,\n            from_status TEXT,\n            to_status TEXT NOT NULL,\n            changed_at TEXT NOT NULL,\n            reason TEXT NOT NULL,\n            rule_version TEXT NOT NULL,\n            FOREIGN KEY (remediation_id) REFERENCES remediations(remediation_id)\n        )"
+    },
+    {
+      "table_name": "remediation_lots",
+      "description": "Description requires business confirmation.",
+      "columns": [
+        {
+          "name": "remediation_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 1,
+          "foreign_key": {
+            "referenced_table": "remediations",
+            "referenced_column": "remediation_id"
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (part of composite primary key)",
+          "validation_rule": "Required; first component of composite primary key and foreign key to remediations.remediation_id."
+        },
+        {
+          "name": "lot_id",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 2,
+          "foreign_key": {
+            "referenced_table": "inventory_lots",
+            "referenced_column": "lot_id"
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (part of composite primary key)",
+          "validation_rule": "Required; second component of composite primary key and foreign key to inventory_lots.lot_id."
+        },
+        {
+          "name": "linked_at",
+          "data_type": "TEXT",
+          "not_null": true,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "timestamp (TEXT)",
+          "unique": "No",
+          "validation_rule": "Required timestamp text; SQLite does not enforce a timestamp format."
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "lot_id",
+          "referenced_table": "inventory_lots",
+          "referenced_column": "lot_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        },
+        {
+          "column": "remediation_id",
+          "referenced_table": "remediations",
+          "referenced_column": "remediation_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_remediation_lots_lot",
+          "unique": false,
+          "columns": [
+            "lot_id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_remediation_lots_1",
+          "unique": true,
+          "columns": [
+            "remediation_id",
+            "lot_id"
+          ]
+        }
+      ],
+      "table_constraints_sql": "CREATE TABLE remediation_lots (\n            remediation_id TEXT NOT NULL,\n            lot_id TEXT NOT NULL,\n            linked_at TEXT NOT NULL,\n            PRIMARY KEY (remediation_id, lot_id),\n            FOREIGN KEY (remediation_id) REFERENCES remediations(remediation_id),\n            FOREIGN KEY (lot_id) REFERENCES inventory_lots(lot_id)\n        )"
+    },
+    {
       "table_name": "remediations",
       "description": "Description requires business confirmation.",
       "columns": [
         {
           "name": "remediation_id",
           "data_type": "TEXT",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "inspection_id",
@@ -666,7 +1503,13 @@
           "foreign_key": {
             "referenced_table": "inspections",
             "referenced_column": "inspection_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Foreign key references inspections.inspection_id."
         },
         {
           "name": "lot_id",
@@ -677,7 +1520,13 @@
           "foreign_key": {
             "referenced_table": "inventory_lots",
             "referenced_column": "lot_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Foreign key references inventory_lots.lot_id."
         },
         {
           "name": "remediation_type",
@@ -685,7 +1534,23 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [
+            "ADJUST_TEMPERATURE",
+            "ADJUST_HUMIDITY",
+            "REPAIR_SENSOR",
+            "CLOSE_DOOR",
+            "REPAIR_DOOR",
+            "RELOCATE_INVENTORY",
+            "QUARANTINE_INVENTORY",
+            "RECALIBRATE_SENSOR",
+            "OTHER"
+          ],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required; value must match one of the nine values in the SQLite CHECK constraint."
         },
         {
           "name": "action_description",
@@ -693,7 +1558,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "remediation_status",
@@ -701,7 +1572,19 @@
           "not_null": true,
           "default_value": "'PLANNED'",
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [
+            "PLANNED",
+            "IN_PROGRESS",
+            "COMPLETED",
+            "FAILED",
+            "CANCELLED"
+          ],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). CHECK constraint restricts the value to the listed values."
         },
         {
           "name": "assigned_to",
@@ -709,7 +1592,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "started_at",
@@ -717,7 +1606,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "completed_at",
@@ -725,7 +1620,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "inventory_impact",
@@ -733,7 +1634,44 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
+        },
+        {
+          "name": "alarm_id",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": {
+            "referenced_table": "alarms",
+            "referenced_column": "alarm_id"
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Foreign key references alarms.alarm_id."
+        },
+        {
+          "name": "created_at",
+          "data_type": "TEXT",
+          "not_null": false,
+          "default_value": null,
+          "primary_key_position": 0,
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         }
       ],
       "foreign_keys": [
@@ -748,6 +1686,13 @@
           "column": "inspection_id",
           "referenced_table": "inspections",
           "referenced_column": "inspection_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION"
+        },
+        {
+          "column": "alarm_id",
+          "referenced_table": "alarms",
+          "referenced_column": "alarm_id",
           "on_update": "NO ACTION",
           "on_delete": "NO ACTION"
         }
@@ -768,7 +1713,7 @@
           ]
         }
       ],
-      "table_constraints_sql": "CREATE TABLE remediations (\n    remediation_id TEXT PRIMARY KEY,\n    inspection_id TEXT NOT NULL,\n    lot_id TEXT,\n    remediation_type TEXT NOT NULL\n        CHECK (remediation_type IN (\n            'ADJUST_TEMPERATURE',\n            'ADJUST_HUMIDITY',\n            'REPAIR_SENSOR',\n            'CLOSE_DOOR',\n            'RELOCATE_INVENTORY',\n            'QUARANTINE_INVENTORY',\n            'RECALIBRATE_SENSOR',\n            'OTHER'\n        )),\n    action_description TEXT NOT NULL,\n    remediation_status TEXT NOT NULL DEFAULT 'PLANNED'\n        CHECK (remediation_status IN (\n            'PLANNED',\n            'IN_PROGRESS',\n            'COMPLETED',\n            'FAILED',\n            'CANCELLED'\n        )),\n    assigned_to TEXT NOT NULL,\n    started_at TEXT,\n    completed_at TEXT,\n    inventory_impact TEXT,\n\n    FOREIGN KEY (inspection_id)\n        REFERENCES inspections(inspection_id),\n\n    FOREIGN KEY (lot_id)\n        REFERENCES inventory_lots(lot_id),\n\n    CHECK (\n        completed_at IS NULL OR started_at IS NOT NULL\n    ),\n    CHECK (\n        completed_at IS NULL OR completed_at >= started_at\n    )\n)"
+      "table_constraints_sql": "CREATE TABLE \"remediations\" (\n    remediation_id TEXT PRIMARY KEY,\n    inspection_id TEXT NOT NULL,\n    lot_id TEXT,\n    remediation_type TEXT NOT NULL\n        CHECK (remediation_type IN (\n            'ADJUST_TEMPERATURE',\n            'ADJUST_HUMIDITY',\n            'REPAIR_SENSOR',\n            'CLOSE_DOOR', 'REPAIR_DOOR',\n            'RELOCATE_INVENTORY',\n            'QUARANTINE_INVENTORY',\n            'RECALIBRATE_SENSOR',\n            'OTHER'\n        )),\n    action_description TEXT NOT NULL,\n    remediation_status TEXT NOT NULL DEFAULT 'PLANNED'\n        CHECK (remediation_status IN (\n            'PLANNED',\n            'IN_PROGRESS',\n            'COMPLETED',\n            'FAILED',\n            'CANCELLED'\n        )),\n    assigned_to TEXT NOT NULL,\n    started_at TEXT,\n    completed_at TEXT,\n    inventory_impact TEXT, \"alarm_id\" TEXT REFERENCES alarms(alarm_id), \"created_at\" TEXT,\n\n    FOREIGN KEY (inspection_id)\n        REFERENCES inspections(inspection_id),\n\n    FOREIGN KEY (lot_id)\n        REFERENCES inventory_lots(lot_id),\n\n    CHECK (\n        completed_at IS NULL OR started_at IS NOT NULL\n    ),\n    CHECK (\n        completed_at IS NULL OR completed_at >= started_at\n    )\n)"
     },
     {
       "table_name": "schema_metadata",
@@ -777,10 +1722,16 @@
         {
           "name": "version",
           "data_type": "INTEGER",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "description",
@@ -788,7 +1739,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "applied_at",
@@ -796,7 +1753,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         }
       ],
       "foreign_keys": [],
@@ -810,10 +1773,16 @@
         {
           "name": "outage_id",
           "data_type": "TEXT",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "sensor_id",
@@ -824,7 +1793,13 @@
           "foreign_key": {
             "referenced_table": "sensors",
             "referenced_column": "sensor_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Foreign key references sensors.sensor_id."
         },
         {
           "name": "outage_start",
@@ -832,7 +1807,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "outage_end",
@@ -840,7 +1821,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "detected_at",
@@ -848,7 +1835,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "outage_reason",
@@ -856,7 +1849,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "lifecycle_state",
@@ -864,7 +1863,13 @@
           "not_null": true,
           "default_value": "'OPEN'",
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         }
       ],
       "foreign_keys": [
@@ -902,10 +1907,16 @@
         {
           "name": "reading_id",
           "data_type": "TEXT",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "sensor_id",
@@ -916,7 +1927,13 @@
           "foreign_key": {
             "referenced_table": "sensors",
             "referenced_column": "sensor_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Part of unique key",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Foreign key references sensors.sensor_id."
         },
         {
           "name": "recorded_at",
@@ -924,7 +1941,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Part of unique key",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "temperature_c",
@@ -932,7 +1955,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "humidity_pct",
@@ -940,7 +1969,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "occupancy_count",
@@ -948,7 +1983,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "battery_pct",
@@ -956,7 +1997,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "signal_strength",
@@ -964,7 +2011,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "received_at",
@@ -972,7 +2025,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         }
       ],
       "foreign_keys": [
@@ -1018,10 +2077,16 @@
         {
           "name": "assignment_id",
           "data_type": "INTEGER",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "sensor_id",
@@ -1032,7 +2097,13 @@
           "foreign_key": {
             "referenced_table": "sensors",
             "referenced_column": "sensor_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Foreign key references sensors.sensor_id."
         },
         {
           "name": "zone_id",
@@ -1043,7 +2114,13 @@
           "foreign_key": {
             "referenced_table": "zones",
             "referenced_column": "zone_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Foreign key references zones.zone_id."
         },
         {
           "name": "effective_from",
@@ -1051,7 +2128,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "effective_to",
@@ -1059,7 +2142,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "assignment_reason",
@@ -1067,7 +2156,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "created_at",
@@ -1075,7 +2170,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         }
       ],
       "foreign_keys": [
@@ -1121,10 +2222,16 @@
         {
           "name": "sensor_id",
           "data_type": "TEXT",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "sensor_name",
@@ -1132,7 +2239,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "sensor_type",
@@ -1140,7 +2253,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "manufacturer",
@@ -1148,7 +2267,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "installation_date",
@@ -1156,7 +2281,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "calibration_due_date",
@@ -1164,7 +2295,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "lifecycle_state",
@@ -1172,7 +2309,13 @@
           "not_null": true,
           "default_value": "'ACTIVE'",
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "created_at",
@@ -1180,7 +2323,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         }
       ],
       "foreign_keys": [],
@@ -1202,10 +2351,16 @@
         {
           "name": "requirement_id",
           "data_type": "TEXT",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "product_type",
@@ -1213,7 +2368,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Part of unique key",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "min_temperature_c",
@@ -1221,7 +2382,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "max_temperature_c",
@@ -1229,7 +2396,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "min_humidity_pct",
@@ -1237,7 +2410,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "max_humidity_pct",
@@ -1245,7 +2424,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "max_dwell_hours",
@@ -1253,7 +2438,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "effective_from",
@@ -1261,7 +2452,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "effective_to",
@@ -1269,7 +2466,13 @@
           "not_null": false,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "No additional column-level validation identified in the SQLite schema."
         },
         {
           "name": "requirement_version",
@@ -1277,7 +2480,13 @@
           "not_null": true,
           "default_value": "1",
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Part of unique key",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "created_at",
@@ -1285,7 +2494,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         }
       ],
       "foreign_keys": [],
@@ -1315,10 +2530,16 @@
         {
           "name": "warehouse_id",
           "data_type": "TEXT",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "warehouse_name",
@@ -1326,7 +2547,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "location",
@@ -1334,7 +2561,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "capacity_sq_m",
@@ -1342,7 +2575,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "warehouse_type",
@@ -1350,7 +2589,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "lifecycle_state",
@@ -1358,7 +2603,13 @@
           "not_null": true,
           "default_value": "'ACTIVE'",
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "created_at",
@@ -1366,7 +2617,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "updated_at",
@@ -1374,7 +2631,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         }
       ],
       "foreign_keys": [],
@@ -1396,10 +2659,16 @@
         {
           "name": "zone_id",
           "data_type": "TEXT",
-          "not_null": false,
+          "not_null": true,
           "default_value": null,
           "primary_key_position": 1,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Yes (primary key)",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique."
         },
         {
           "name": "warehouse_id",
@@ -1410,7 +2679,13 @@
           "foreign_key": {
             "referenced_table": "warehouses",
             "referenced_column": "warehouse_id"
-          }
+          },
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Part of unique key",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY). Foreign key references warehouses.warehouse_id."
         },
         {
           "name": "zone_name",
@@ -1418,7 +2693,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "Part of unique key",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "zone_type",
@@ -1426,7 +2707,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "max_capacity",
@@ -1434,7 +2721,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "lifecycle_state",
@@ -1442,7 +2735,13 @@
           "not_null": true,
           "default_value": "'ACTIVE'",
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         },
         {
           "name": "created_at",
@@ -1450,7 +2749,13 @@
           "not_null": true,
           "default_value": null,
           "primary_key_position": 0,
-          "foreign_key": null
+          "foreign_key": null,
+          "allowed_values": [],
+          "allowed_values_note": "",
+          "observed_values": [],
+          "units": "Not specified / not applicable",
+          "unique": "No",
+          "validation_rule": "Required (NOT NULL or PRIMARY KEY)."
         }
       ],
       "foreign_keys": [

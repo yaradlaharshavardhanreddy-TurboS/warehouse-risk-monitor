@@ -1,119 +1,147 @@
-table_name,column_name,data_type,required,default_value,primary_key_position,foreign_key_table,foreign_key_column
-alarm_lots,alarm_id,TEXT,True,,1,alarms,alarm_id
-alarm_lots,lot_id,TEXT,True,,2,inventory_lots,lot_id
-alarm_lots,impact_type,TEXT,True,,0,,
-alarm_lots,impact_start,TEXT,True,,3,,
-alarm_lots,impact_end,TEXT,False,,0,,
-alarm_lots,impact_details,TEXT,False,,0,,
-alarms,alarm_id,TEXT,False,,1,,
-alarms,warehouse_id,TEXT,True,,0,warehouses,warehouse_id
-alarms,zone_id,TEXT,True,,0,zones,zone_id
-alarms,sensor_id,TEXT,False,,0,sensors,sensor_id
-alarms,alarm_type,TEXT,True,,0,,
-alarms,severity,TEXT,True,,0,,
-alarms,detected_at,TEXT,True,,0,,
-alarms,description,TEXT,True,,0,,
-alarms,lifecycle_state,TEXT,True,'OPEN',0,,
-alarms,resolved_at,TEXT,False,,0,,
-door_events,door_event_id,TEXT,False,,1,,
-door_events,zone_id,TEXT,True,,0,zones,zone_id
-door_events,door_identifier,TEXT,True,,0,,
-door_events,event_type,TEXT,True,,0,,
-door_events,event_timestamp,TEXT,True,,0,,
-door_events,duration_seconds,INTEGER,False,,0,,
-door_events,recorded_by,TEXT,True,'SYSTEM',0,,
-inspections,inspection_id,TEXT,False,,1,,
-inspections,alarm_id,TEXT,True,,0,alarms,alarm_id
-inspections,inspector_name,TEXT,True,,0,,
-inspections,inspection_type,TEXT,True,,0,,
-inspections,inspection_status,TEXT,True,'SCHEDULED',0,,
-inspections,findings,TEXT,False,,0,,
-inspections,scheduled_at,TEXT,True,,0,,
-inspections,completed_at,TEXT,False,,0,,
-inventory_lots,lot_id,TEXT,False,,1,,
-inventory_lots,product_type,TEXT,True,,0,,
-inventory_lots,product_name,TEXT,True,,0,,
-inventory_lots,quantity,INTEGER,True,,0,,
-inventory_lots,unit_of_measure,TEXT,True,,0,,
-inventory_lots,requirement_id,TEXT,True,,0,storage_requirements,requirement_id
-inventory_lots,received_at,TEXT,True,,0,,
-inventory_lots,expiry_date,TEXT,False,,0,,
-inventory_lots,lifecycle_state,TEXT,True,'RECEIVED',0,,
-inventory_lots,created_at,TEXT,True,,0,,
-lot_zone_assignments,assignment_id,INTEGER,False,,1,,
-lot_zone_assignments,lot_id,TEXT,True,,0,inventory_lots,lot_id
-lot_zone_assignments,zone_id,TEXT,True,,0,zones,zone_id
-lot_zone_assignments,assigned_at,TEXT,True,,0,,
-lot_zone_assignments,released_at,TEXT,False,,0,,
-lot_zone_assignments,assignment_reason,TEXT,False,,0,,
-lot_zone_assignments,created_at,TEXT,True,,0,,
-remediations,remediation_id,TEXT,False,,1,,
-remediations,inspection_id,TEXT,True,,0,inspections,inspection_id
-remediations,lot_id,TEXT,False,,0,inventory_lots,lot_id
-remediations,remediation_type,TEXT,True,,0,,
-remediations,action_description,TEXT,True,,0,,
-remediations,remediation_status,TEXT,True,'PLANNED',0,,
-remediations,assigned_to,TEXT,True,,0,,
-remediations,started_at,TEXT,False,,0,,
-remediations,completed_at,TEXT,False,,0,,
-remediations,inventory_impact,TEXT,False,,0,,
-schema_metadata,version,INTEGER,False,,1,,
-schema_metadata,description,TEXT,True,,0,,
-schema_metadata,applied_at,TEXT,True,,0,,
-sensor_outages,outage_id,TEXT,False,,1,,
-sensor_outages,sensor_id,TEXT,True,,0,sensors,sensor_id
-sensor_outages,outage_start,TEXT,True,,0,,
-sensor_outages,outage_end,TEXT,False,,0,,
-sensor_outages,detected_at,TEXT,True,,0,,
-sensor_outages,outage_reason,TEXT,True,,0,,
-sensor_outages,lifecycle_state,TEXT,True,'OPEN',0,,
-sensor_readings,reading_id,TEXT,False,,1,,
-sensor_readings,sensor_id,TEXT,True,,0,sensors,sensor_id
-sensor_readings,recorded_at,TEXT,True,,0,,
-sensor_readings,temperature_c,REAL,False,,0,,
-sensor_readings,humidity_pct,REAL,False,,0,,
-sensor_readings,occupancy_count,INTEGER,False,,0,,
-sensor_readings,battery_pct,REAL,False,,0,,
-sensor_readings,signal_strength,REAL,False,,0,,
-sensor_readings,received_at,TEXT,True,,0,,
-sensor_zone_assignments,assignment_id,INTEGER,False,,1,,
-sensor_zone_assignments,sensor_id,TEXT,True,,0,sensors,sensor_id
-sensor_zone_assignments,zone_id,TEXT,True,,0,zones,zone_id
-sensor_zone_assignments,effective_from,TEXT,True,,0,,
-sensor_zone_assignments,effective_to,TEXT,False,,0,,
-sensor_zone_assignments,assignment_reason,TEXT,False,,0,,
-sensor_zone_assignments,created_at,TEXT,True,,0,,
-sensors,sensor_id,TEXT,False,,1,,
-sensors,sensor_name,TEXT,True,,0,,
-sensors,sensor_type,TEXT,True,,0,,
-sensors,manufacturer,TEXT,False,,0,,
-sensors,installation_date,TEXT,True,,0,,
-sensors,calibration_due_date,TEXT,False,,0,,
-sensors,lifecycle_state,TEXT,True,'ACTIVE',0,,
-sensors,created_at,TEXT,True,,0,,
-storage_requirements,requirement_id,TEXT,False,,1,,
-storage_requirements,product_type,TEXT,True,,0,,
-storage_requirements,min_temperature_c,REAL,True,,0,,
-storage_requirements,max_temperature_c,REAL,True,,0,,
-storage_requirements,min_humidity_pct,REAL,True,,0,,
-storage_requirements,max_humidity_pct,REAL,True,,0,,
-storage_requirements,max_dwell_hours,REAL,True,,0,,
-storage_requirements,effective_from,TEXT,True,,0,,
-storage_requirements,effective_to,TEXT,False,,0,,
-storage_requirements,requirement_version,INTEGER,True,1,0,,
-storage_requirements,created_at,TEXT,True,,0,,
-warehouses,warehouse_id,TEXT,False,,1,,
-warehouses,warehouse_name,TEXT,True,,0,,
-warehouses,location,TEXT,True,,0,,
-warehouses,capacity_sq_m,REAL,True,,0,,
-warehouses,warehouse_type,TEXT,True,,0,,
-warehouses,lifecycle_state,TEXT,True,'ACTIVE',0,,
-warehouses,created_at,TEXT,True,,0,,
-warehouses,updated_at,TEXT,True,,0,,
-zones,zone_id,TEXT,False,,1,,
-zones,warehouse_id,TEXT,True,,0,warehouses,warehouse_id
-zones,zone_name,TEXT,True,,0,,
-zones,zone_type,TEXT,True,,0,,
-zones,max_capacity,INTEGER,True,,0,,
-zones,lifecycle_state,TEXT,True,'ACTIVE',0,,
-zones,created_at,TEXT,True,,0,,
+table_name,column_name,data_type,required,default_value,primary_key_position,foreign_key_table,foreign_key_column,allowed_values,allowed_values_note,observed_values_not_constraints,units,unique,validation_rule
+alarm_history,history_id,INTEGER,True,,1,,,,,,identifier (integer),Yes (primary key),Generated INTEGER PRIMARY KEY AUTOINCREMENT; unique row identifier.
+alarm_history,alarm_id,TEXT,True,,0,alarms,alarm_id,,,,Not specified / not applicable,No,Required; foreign key to alarms.alarm_id.
+alarm_history,from_state,TEXT,False,,0,,,OPEN; ACKNOWLEDGED; RESOLVED; CLOSED,,,Not specified / not applicable,No,Optional; when present must be one of the four CHECK-enforced alarm states.
+alarm_history,to_state,TEXT,True,,0,,,OPEN; ACKNOWLEDGED; RESOLVED; CLOSED,,,Not specified / not applicable,No,Required; CHECK-enforced alarm lifecycle state.
+alarm_history,changed_at,TEXT,True,,0,,,,,,timestamp (TEXT),No,Required timestamp text; SQLite does not enforce a timestamp format.
+alarm_history,reason,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required explanatory text.
+alarm_history,severity,TEXT,True,,0,,,,Observed values only; no CHECK constraint on this column.,CRITICAL; HIGH; LOW; MEDIUM,Not specified / not applicable,No,Required text; no column-level CHECK constraint in this table.
+alarm_history,age_minutes,REAL,True,,0,,,,,,minutes,No,Required REAL value; no CHECK constraint in this table.
+alarm_history,rule_version,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required rule/version identifier text.
+alarm_lots,alarm_id,TEXT,True,,1,alarms,alarm_id,,,,Not specified / not applicable,Yes (part of composite primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique. Foreign key references alarms.alarm_id.
+alarm_lots,lot_id,TEXT,True,,2,inventory_lots,lot_id,,,,Not specified / not applicable,Yes (part of composite primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 2; unique. Foreign key references inventory_lots.lot_id.
+alarm_lots,impact_type,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+alarm_lots,impact_start,TEXT,True,,3,,,,,,Not specified / not applicable,Yes (part of composite primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 3; unique.
+alarm_lots,impact_end,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+alarm_lots,impact_details,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+alarms,alarm_id,TEXT,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+alarms,warehouse_id,TEXT,True,,0,warehouses,warehouse_id,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY). Foreign key references warehouses.warehouse_id.
+alarms,zone_id,TEXT,True,,0,zones,zone_id,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY). Foreign key references zones.zone_id.
+alarms,sensor_id,TEXT,False,,0,sensors,sensor_id,,,,Not specified / not applicable,No,Foreign key references sensors.sensor_id.
+alarms,alarm_type,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+alarms,severity,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+alarms,detected_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+alarms,description,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+alarms,lifecycle_state,TEXT,True,'OPEN',0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+alarms,resolved_at,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+door_events,door_event_id,TEXT,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+door_events,zone_id,TEXT,True,,0,zones,zone_id,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY). Foreign key references zones.zone_id.
+door_events,door_identifier,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+door_events,event_type,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+door_events,event_timestamp,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+door_events,duration_seconds,INTEGER,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+door_events,recorded_by,TEXT,True,'SYSTEM',0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+inspection_history,inspection_history_id,TEXT,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required TEXT PRIMARY KEY; unique identifier.
+inspection_history,inspection_id,TEXT,True,,0,inspections,inspection_id,,,,Not specified / not applicable,No,Required; foreign key to inspections.inspection_id.
+inspection_history,from_status,TEXT,False,,0,,,,Observed values only; no status CHECK constraint on this table.,IN_PROGRESS; SCHEDULED,Not specified / not applicable,No,Optional status text; no SQLite CHECK constraint.
+inspection_history,to_status,TEXT,True,,0,,,,Observed values only; no status CHECK constraint on this table.,CANCELLED; COMPLETED; IN_PROGRESS; SCHEDULED,Not specified / not applicable,No,Required status text; no SQLite CHECK constraint.
+inspection_history,changed_at,TEXT,True,,0,,,,,,timestamp (TEXT),No,Required timestamp text; SQLite does not enforce a timestamp format.
+inspection_history,reason,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required explanatory text.
+inspection_history,rule_version,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required rule/version identifier text.
+inspections,inspection_id,TEXT,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+inspections,alarm_id,TEXT,True,,0,alarms,alarm_id,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY). Foreign key references alarms.alarm_id.
+inspections,inspector_name,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+inspections,inspection_type,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+inspections,inspection_status,TEXT,True,'SCHEDULED',0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+inspections,findings,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+inspections,scheduled_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+inspections,completed_at,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+inventory_lots,lot_id,TEXT,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+inventory_lots,product_type,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+inventory_lots,product_name,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+inventory_lots,quantity,INTEGER,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+inventory_lots,unit_of_measure,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+inventory_lots,requirement_id,TEXT,True,,0,storage_requirements,requirement_id,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY). Foreign key references storage_requirements.requirement_id.
+inventory_lots,received_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+inventory_lots,expiry_date,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+inventory_lots,lifecycle_state,TEXT,True,'RECEIVED',0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+inventory_lots,created_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+lot_zone_assignments,assignment_id,INTEGER,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+lot_zone_assignments,lot_id,TEXT,True,,0,inventory_lots,lot_id,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY). Foreign key references inventory_lots.lot_id.
+lot_zone_assignments,zone_id,TEXT,True,,0,zones,zone_id,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY). Foreign key references zones.zone_id.
+lot_zone_assignments,assigned_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+lot_zone_assignments,released_at,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+lot_zone_assignments,assignment_reason,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+lot_zone_assignments,created_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+remediation_history,history_id,TEXT,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required TEXT PRIMARY KEY; unique identifier.
+remediation_history,remediation_id,TEXT,True,,0,remediations,remediation_id,,,,Not specified / not applicable,No,Required; foreign key to remediations.remediation_id.
+remediation_history,from_status,TEXT,False,,0,,,,Observed values only; no status CHECK constraint on this table.,IN_PROGRESS; PLANNED,Not specified / not applicable,No,Optional status text; no SQLite CHECK constraint.
+remediation_history,to_status,TEXT,True,,0,,,,Observed values only; no status CHECK constraint on this table.,CANCELLED; COMPLETED; FAILED; IN_PROGRESS; PLANNED,Not specified / not applicable,No,Required status text; no SQLite CHECK constraint.
+remediation_history,changed_at,TEXT,True,,0,,,,,,timestamp (TEXT),No,Required timestamp text; SQLite does not enforce a timestamp format.
+remediation_history,reason,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required explanatory text.
+remediation_history,rule_version,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required rule/version identifier text.
+remediation_lots,remediation_id,TEXT,True,,1,remediations,remediation_id,,,,Not specified / not applicable,Yes (part of composite primary key),Required; first component of composite primary key and foreign key to remediations.remediation_id.
+remediation_lots,lot_id,TEXT,True,,2,inventory_lots,lot_id,,,,Not specified / not applicable,Yes (part of composite primary key),Required; second component of composite primary key and foreign key to inventory_lots.lot_id.
+remediation_lots,linked_at,TEXT,True,,0,,,,,,timestamp (TEXT),No,Required timestamp text; SQLite does not enforce a timestamp format.
+remediations,remediation_id,TEXT,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+remediations,inspection_id,TEXT,True,,0,inspections,inspection_id,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY). Foreign key references inspections.inspection_id.
+remediations,lot_id,TEXT,False,,0,inventory_lots,lot_id,,,,Not specified / not applicable,No,Foreign key references inventory_lots.lot_id.
+remediations,remediation_type,TEXT,True,,0,,,ADJUST_TEMPERATURE; ADJUST_HUMIDITY; REPAIR_SENSOR; CLOSE_DOOR; REPAIR_DOOR; RELOCATE_INVENTORY; QUARANTINE_INVENTORY; RECALIBRATE_SENSOR; OTHER,,,Not specified / not applicable,No,Required; value must match one of the nine values in the SQLite CHECK constraint.
+remediations,action_description,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+remediations,remediation_status,TEXT,True,'PLANNED',0,,,PLANNED; IN_PROGRESS; COMPLETED; FAILED; CANCELLED,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY). CHECK constraint restricts the value to the listed values.
+remediations,assigned_to,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+remediations,started_at,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+remediations,completed_at,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+remediations,inventory_impact,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+remediations,alarm_id,TEXT,False,,0,alarms,alarm_id,,,,Not specified / not applicable,No,Foreign key references alarms.alarm_id.
+remediations,created_at,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+schema_metadata,version,INTEGER,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+schema_metadata,description,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+schema_metadata,applied_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+sensor_outages,outage_id,TEXT,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+sensor_outages,sensor_id,TEXT,True,,0,sensors,sensor_id,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY). Foreign key references sensors.sensor_id.
+sensor_outages,outage_start,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+sensor_outages,outage_end,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+sensor_outages,detected_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+sensor_outages,outage_reason,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+sensor_outages,lifecycle_state,TEXT,True,'OPEN',0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+sensor_readings,reading_id,TEXT,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+sensor_readings,sensor_id,TEXT,True,,0,sensors,sensor_id,,,,Not specified / not applicable,Part of unique key,Required (NOT NULL or PRIMARY KEY). Foreign key references sensors.sensor_id.
+sensor_readings,recorded_at,TEXT,True,,0,,,,,,Not specified / not applicable,Part of unique key,Required (NOT NULL or PRIMARY KEY).
+sensor_readings,temperature_c,REAL,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+sensor_readings,humidity_pct,REAL,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+sensor_readings,occupancy_count,INTEGER,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+sensor_readings,battery_pct,REAL,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+sensor_readings,signal_strength,REAL,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+sensor_readings,received_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+sensor_zone_assignments,assignment_id,INTEGER,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+sensor_zone_assignments,sensor_id,TEXT,True,,0,sensors,sensor_id,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY). Foreign key references sensors.sensor_id.
+sensor_zone_assignments,zone_id,TEXT,True,,0,zones,zone_id,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY). Foreign key references zones.zone_id.
+sensor_zone_assignments,effective_from,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+sensor_zone_assignments,effective_to,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+sensor_zone_assignments,assignment_reason,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+sensor_zone_assignments,created_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+sensors,sensor_id,TEXT,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+sensors,sensor_name,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+sensors,sensor_type,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+sensors,manufacturer,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+sensors,installation_date,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+sensors,calibration_due_date,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+sensors,lifecycle_state,TEXT,True,'ACTIVE',0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+sensors,created_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+storage_requirements,requirement_id,TEXT,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+storage_requirements,product_type,TEXT,True,,0,,,,,,Not specified / not applicable,Part of unique key,Required (NOT NULL or PRIMARY KEY).
+storage_requirements,min_temperature_c,REAL,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+storage_requirements,max_temperature_c,REAL,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+storage_requirements,min_humidity_pct,REAL,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+storage_requirements,max_humidity_pct,REAL,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+storage_requirements,max_dwell_hours,REAL,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+storage_requirements,effective_from,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+storage_requirements,effective_to,TEXT,False,,0,,,,,,Not specified / not applicable,No,No additional column-level validation identified in the SQLite schema.
+storage_requirements,requirement_version,INTEGER,True,1,0,,,,,,Not specified / not applicable,Part of unique key,Required (NOT NULL or PRIMARY KEY).
+storage_requirements,created_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+warehouses,warehouse_id,TEXT,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+warehouses,warehouse_name,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+warehouses,location,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+warehouses,capacity_sq_m,REAL,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+warehouses,warehouse_type,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+warehouses,lifecycle_state,TEXT,True,'ACTIVE',0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+warehouses,created_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+warehouses,updated_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+zones,zone_id,TEXT,True,,1,,,,,,Not specified / not applicable,Yes (primary key),Required (NOT NULL or PRIMARY KEY). Primary key position 1; unique.
+zones,warehouse_id,TEXT,True,,0,warehouses,warehouse_id,,,,Not specified / not applicable,Part of unique key,Required (NOT NULL or PRIMARY KEY). Foreign key references warehouses.warehouse_id.
+zones,zone_name,TEXT,True,,0,,,,,,Not specified / not applicable,Part of unique key,Required (NOT NULL or PRIMARY KEY).
+zones,zone_type,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+zones,max_capacity,INTEGER,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+zones,lifecycle_state,TEXT,True,'ACTIVE',0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
+zones,created_at,TEXT,True,,0,,,,,,Not specified / not applicable,No,Required (NOT NULL or PRIMARY KEY).
