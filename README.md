@@ -196,13 +196,32 @@ python -m pip install -r requirements.txt
 
 ### Provide the database
 
-Place the supplied clean database at:
+The clean baseline database is included as the compressed archive
+`data/warehouse_monitor.db.gz`.
 
-```text
-data/warehouse_monitor.db
+From the repository root, extract it before starting the application:
+
+```bash
+python - <<'PYTHON'
+import gzip
+import shutil
+from pathlib import Path
+
+archive = Path("data/warehouse_monitor.db.gz")
+database = Path("data/warehouse_monitor.db")
+
+if database.exists():
+    raise SystemExit("Database already exists; refusing to overwrite it.")
+
+with gzip.open(archive, "rb") as source:
+    with database.open("wb") as target:
+        shutil.copyfileobj(source, target)
+
+print(f"Database extracted: {database}")
+PYTHON
 ```
 
-The large database is supplied separately from the source-and-documentation ZIP.
+The uncompressed database is excluded from Git because of its size.
 
 ## Usage
 
