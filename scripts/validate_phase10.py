@@ -1,7 +1,7 @@
+
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 import sqlite3
 import sys
@@ -13,14 +13,27 @@ ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "data" / "warehouse_monitor.db"
 PHASE_DIR = ROOT / "docs" / "phase10"
 
-EXPECTED_TABLE_COUNTS = {
-    "warehouses": 10,
-    "zones": 100,
-    "sensors": 500,
-    "sensor_readings": 1_000_000,
-    "inventory_lots": 10_000,
-    "sensor_zone_assignments": 500,
-    "sensor_outages": 0,
+EXPECTED_TABLE_COUNT = 19
+
+EXPECTED_REQUIRED_TABLES = {
+    "warehouses",
+    "zones",
+    "sensors",
+    "sensor_zone_assignments",
+    "sensor_readings",
+    "door_events",
+    "storage_requirements",
+    "inventory_lots",
+    "lot_zone_assignments",
+    "alarms",
+    "alarm_lots",
+    "inspections",
+    "remediations",
+    "sensor_outages",
+    "alarm_history",
+    "inspection_history",
+    "remediation_history",
+    "remediation_lots",
 }
 
 EXPECTED_SENSOR_SCENARIOS = {
@@ -28,6 +41,13 @@ EXPECTED_SENSOR_SCENARIOS = {
     "SENSOR_READING_GAP",
     "SENSOR_OUTAGE",
     "OCCUPANCY_THRESHOLD_BREACH",
+}
+
+EXPECTED_GROUND_TRUTH_TYPES = {
+    "ALARM_LOT_LINK_DELETED",
+    "LOT_WRONG_TYPE_ZONE",
+    "SENSOR_MISSING_READINGS",
+    "SENSOR_OVERLAPPING_ZONE",
 }
 
 
@@ -89,16 +109,38 @@ def validate_database():
         }
 
         check(
-            len(tables) == 15,
-            f"Expected 15 tables; found {len(tables)}"
+            len(tables) == EXPECTED_TABLE_COUNT,
+            f"Expected {EXPECTED_TABLE_COUNT} tables; found {len(tables)}"
         )
 
-        for table, expected_count in EXPECTED_TABLE_COUNTS.items():
+        missing_tables = EXPECTED_REQUIRED_TABLES - tables
+
+        check(
+            not missing_tables,
+            "All required relational and lifecycle tables exist"
+            + (
+                f"; missing: {sorted(missing_tables)}"
+                if missing_tables else ""
+            )
+        )
+
+        for table in sorted(EXPECTED_REQUIRED_TABLES):
             check(
                 table in tables,
                 f"Required table exists: {table}"
             )
 
+        expected_counts = {
+            "warehouses": 10,
+            "zones": 100,
+            "sensors": 500,
+            "sensor_readings": 1_000_000,
+            "inventory_lots": 10_000,
+            "sensor_zone_assignments": 500,
+            "sensor_outages": 0,
+        }
+
+        for table, expected_count in expected_counts.items():
             quoted = '"' + table.replace('"', '""') + '"'
 
             actual_count = conn.execute(
@@ -120,6 +162,7 @@ def validate_data_dictionary(tables):
     print("\n========== DATA DICTIONARY VALIDATION ==========")
 
     dictionary_path = PHASE_DIR / "data_dictionary.json"
+
     check(
         dictionary_path.exists(),
         "Data dictionary JSON exists"
@@ -128,7 +171,6 @@ def validate_data_dictionary(tables):
     with dictionary_path.open(encoding="utf-8") as file:
         dictionary = json.load(file)
 
-    # Support either a direct table mapping or a tables wrapper.
     documented_tables = dictionary.get(
         "tables",
         dictionary
