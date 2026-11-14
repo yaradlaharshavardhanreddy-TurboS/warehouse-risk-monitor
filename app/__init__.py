@@ -1,6 +1,6 @@
 """Warehouse Risk Monitoring Flask application."""
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, redirect
 
 from config import Config
 from app.routes import register_routes
@@ -17,12 +17,8 @@ def create_app(config_class=Config):
 
     @app.route("/", methods=["GET"])
     def index():
-        return jsonify({
-            "application": "Warehouse Risk Monitoring",
-            "version": "1.0.0",
-            "status": "running",
-            "health_endpoint": "/api/health"
-        })
+        """Redirect the application homepage to the monitoring dashboard."""
+        return redirect("/monitor")
 
     @app.errorhandler(404)
     def not_found(error):
